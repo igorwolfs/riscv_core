@@ -4,7 +4,7 @@
 // FOR NOW: no clock / reset needed since this "should" be purely combinatorial
 module control (
     // * ALU COMMANDS
-    output alu_cid_out,
+    output [9:0] alu_cid_out,
     output [31:0] alu_arg1_out,
     output [31:0] alu_arg2_out,
     input [31:0] alu_arg_in,
@@ -172,7 +172,6 @@ assign pc_next = ((imem_opcode == `OPCODE_B) && br_cond) ? pc_next_br :
                  (imem_opcode == `OPCODE_J_JAL) ? pc_next_jal :
                  (imem_opcode == `OPCODE_I_JALR) ? pc_next_jalr :
                  pc_next_default;
-
 
 // ***************************** REGISTER DATA WRITE *****************************
 // alu-instructions, Jump instructions, load instructions, lui, aupic
