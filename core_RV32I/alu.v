@@ -14,7 +14,9 @@ module alu(
     output alu_arg_out
 );
 
-// Switch - case with the CID
-// Perform the relevant alu-logic in the case statement, and register the output
+// Take the relevant instruction
+
+// Perform it with the alu_arg1_in and alu_arg2_in
+// Set the output to alu_arg_out
 
 endmodule

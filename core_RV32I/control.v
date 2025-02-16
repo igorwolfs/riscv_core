@@ -193,11 +193,11 @@ assign load_bu = $unsigned(dmem_rd_data_in[7:0]);
 assign load_hwu = $unsigned(dmem_rd_data_in[15:0]);
 
 wire [31:0] reg_data_out_load;
-assign reg_data_out_load = (funct3 == `FUNCT3_LB) ? load_b :
-                        (funct3 == `FUNCT3_LH) ? load_hw :
+assign reg_data_out_load = (funct3 == `FUNCT3_LB) ? {{24{load_b[7]}}, load_b} :
+                        (funct3 == `FUNCT3_LH) ? {{16{load_hw[15]}}, load_hw} :
                         (funct3 == `FUNCT3_LW) ? load_w :
-                        (funct3 == `FUNCT3_LBU) ? load_bu :
-                        load_hwu;
+                        (funct3 == `FUNCT3_LBU) ? {24'b0, load_bu} :
+                        {16'b0, load_hwu};
 
 // *** LUI / AUIPC instruction
 wire [31:0] reg_data_out_lui,  reg_data_out_auipc;
@@ -225,8 +225,8 @@ assign store_hw = (reg_rd_data2_in[15:0]);
 assign store_w = (reg_rd_data2_in[31:0]);
 
 assign dmem_wr_addr_out = reg_rd_data1_in + imm_S_instr;
-assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? (store_b) :
-                        (funct3 == `FUNCT3_SH) ? (store_hw) :
+assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? {{24{store_b[7]}}, store_b} :
+                        (funct3 == `FUNCT3_SH) ? {{16{store_hw[15]}}, store_hw} :
                         store_w;
 
 endmodule
