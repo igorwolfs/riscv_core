@@ -65,7 +65,7 @@ module core
   Program counter: on clock out -> program counter is set to pc_next acquired from control-unit.
   Program counter is then used in instruction memory fetch.
   */
-  double_ff_sync #(.WIDTH(32), .NRST_VAL(0)) pc_t (
+  single_ff_sync #(.WIDTH(32), .NRST_VAL(0)) pc_t (
     .clkin(sysclk), .nrst_in(nrst_in), .data_in(pc_next), .data_out(pc));
 
   // Instruction memory
