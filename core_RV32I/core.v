@@ -11,7 +11,7 @@ The program counter needs to be updated on every clock cycle.
 
 module core
   (
-  input  sysclk, nrst_in
+    input  sysclk, nrst_in
   );
   // ALU COMMANDS
   wire alu_cid, alu_arg1_in, alu_arg2_in, alu_arg_out;
@@ -26,10 +26,10 @@ module core
 
   // DATA MEMORY
   wire [31:0] dmem_rd_data;
-  wire [31:0] dmem_rd_idx;
-  wire [31:0] dmem_wr_idx;
+  wire [31:0] dmem_rd_addr;
   wire [31:0] dmem_wr_data;
-  wire dmem_wr_en, dmem_read;
+  wire [31:0] dmem_wr_addr;
+  wire dmem_wr_en;
 
   // INSTRUCTION MEMORY
   wire [31:0] imem_instr;
@@ -45,31 +45,32 @@ module core
     // ALU CONTROL
     .alu_cid_out(alu_cid), .alu_arg1_out(alu_arg1_in), .alu_arg2_out(alu_arg2_in), .alu_arg_in(alu_arg_out),
     // REGISTER READ / WRITE
-    .wr_en(wr_en), .wr_idx_in(wr_idx), .rd_idx1_in(rd_idx1), .rd_idx2_in (rd_idx2),
-    .wr_data_in(wr_data), .rd_data_1_out(rd_data_1), .rd_data_2_out(rd_data_2),
+    .reg_wr_en_out(reg_wr_en), .reg_wr_idx_in(reg_wr_idx), .reg_rd_idx1_in(reg_rd_idx1), .reg_rd_idx2_in (reg_rd_idx2),
+    .reg_wr_data_in(reg_wr_data), .reg_rd_data_1_out(reg_rd_data1), .reg_rd_data_2_out(reg_rd_data2),
     // PROGRAM COUNTER
     .pc(pc), .pc_next(pc_next),
     // DATA MEMORY
-    .dmem_in(dmem_in), .dmem_addr_out(dmem_addr_out),
+    .dmem_rd_data_in(dmem_rd_data), .dmem_rd_addr_out(dmem_rd_addr),
+    .dmem_wr_en_out(dmem_wr_en), .dmem_wr_data_out(dmem_wr_data), .dmem_wr_addr_out(dmem_wr_addr),
     // INSTRUCTION MEMORY
     .imem_in(imem_instr)
     );
 
   // * DATA MEMORY
   dmemory #() dmemory_t (.clkin(sysclk), .nrst_in(nrst_in),
-  .wr_en_in(dmem_wr_en), .wr_idx_in(dmem_wr_idx), .wr_data_in(dmem_wr_data), // WRITE
-  .rd_idx_in(dmem_rd_idx), .rd_data_out(dmem_rd_data));
+  .rd_data_out(dmem_rd_data), .rd_addr_in(dmem_rd_addr),
+  .wr_en_in(dmem_wr_en), .wr_data_in(dmem_wr_data), .wr_addr_in(dmem_wr_addr)); // WRITE
 
   // * INSTRUCTION MEMORY
   /*
   Program counter: on clock out -> program counter is set to pc_next acquired from control-unit.
   Program counter is then used in instruction memory fetch.
   */
-  single_ff_sync #(.WIDTH(32), .NRST_VAL(0)) pc_t (
+  single_ff #(.WIDTH(32), .NRST_VAL(0)) pc_t (
     .clkin(sysclk), .nrst_in(nrst_in), .data_in(pc_next), .data_out(pc));
 
   // Instruction memory
-  imemory #() imemory_t (.clkin(sysckl),
+  imemory #() imemory_t (.clkin(sysclk),
   .rd_idx_in(pc), .rd_data_out(imem_instr));
 
   // * REGISTERS

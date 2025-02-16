@@ -17,4 +17,4 @@ module alu(
 // Switch - case with the CID
 // Perform the relevant alu-logic in the case statement, and register the output
 
-endmodule;
+endmodule

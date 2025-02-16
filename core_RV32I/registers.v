@@ -25,7 +25,7 @@ begin
         regs[wr_idx_in] <= wr_data_in;
     else;
 end
-assign rd_data_1_out = regs[rd_idx_1_in];
-assign rd_data_2_out = regs[rd_idx_2_in];
+assign rd_data1_out = regs[rd_idx1_in];
+assign rd_data2_out = regs[rd_idx2_in];
 
 endmodule

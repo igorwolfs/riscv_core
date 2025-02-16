@@ -7,4 +7,4 @@ module mcu(
 
 core #() core_t (.sysclk(clkin), .nrst_in(nrst_in));
 
-endmodule;
+endmodule

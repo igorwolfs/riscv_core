@@ -1,3 +1,5 @@
+`timescale 1ns/10ps
+
 module single_ff #(parameter WIDTH=32, parameter NRST_VAL = 0)
 (
     input clkin,
@@ -9,7 +11,7 @@ module single_ff #(parameter WIDTH=32, parameter NRST_VAL = 0)
 always @(posedge clkin)
 begin
     if (~nrst_in)
-        data_in <= NRST_VAL;
+        data_out <= NRST_VAL;
     else
         data_out <= data_in;
 end
