@@ -8,9 +8,9 @@ module top_tb #(parameter mem_content_path="tests/my.hex",
     always #5 sysclk = ~sysclk;
     initial
     begin
-        nrst_in <= 0;
+        nrst_in = 0;
         #10;
-        nrst_in <= 1;
+        nrst_in = 1;
     end
 
 endmodule

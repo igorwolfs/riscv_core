@@ -8,19 +8,20 @@
 module registers (
     input clkin, nrst_in,
     input wr_en,
-    input [32:0] wr_data_in,
+    input [31:0] wr_data_in,
     input [4:0] wr_idx_in,
     input [4:0] rd_idx1_in,
     input [4:0] rd_idx2_in,
-    output [32:0] rd_data1_out,
-    output [32:0] rd_data2_out
+    output [31:0] rd_data1_out,
+    output [31:0] rd_data2_out
 );
 
-reg [31:0] regs;
+reg [31:0] regs [31:0];
+integer i;
 always @(posedge clkin)
 begin
     if (~nrst_in)
-        regs <= 32'b0;
+        for (i=0; i<32; i=i+1)  regs[i] <= 32'b0;
     else if (wr_en)
         regs[wr_idx_in] <= wr_data_in;
     else;

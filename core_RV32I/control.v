@@ -70,12 +70,12 @@ assign dmem_wr_en_out = (imem_opcode == `OPCODE_S);
 wire [11:0] imm_I_instr, imm_S_instr;
 wire [9:0] imm_B_instr;
 wire [31:0] imm_U_instr_ls;
-wire [19:0] imm_J_instr;
+wire [17:0] imm_J_instr;
 
 assign imm_I_instr = imem_in[31:20]; // 12 bits
 assign imm_S_instr = {imem_in[31:25], imem_in[11:7]}; // 12 bits
 assign imm_B_instr = {imem_in[30:25], imem_in[11:8]}; // 10 bits
-assign imm_U_instr_ls = imem_in[31:12] << 12; // 20 bits
+assign imm_U_instr_ls = {imem_in[31:12], 12'b0}; // 20 bits
 assign imm_J_instr = {imem_in[30:21], imem_in[19:12]}; // 20 bits
 
 // ******************* DEFAULT DECODING (READ/WRITE, FUNCT3, FUNCT7) **********************
@@ -110,7 +110,7 @@ wire [31:0] alu_arg2_imm;
 assign alu_arg1_out = reg_rd_data1_in;
 
 // Part of the immediate will be used as sub-code.
-assign alu_arg2_imm = (funct3 != `FUNCT3_SR) ? (imm_I_instr) : ({7'b0, imm_I_instr[4:0]});
+assign alu_arg2_imm = (funct3 != `FUNCT3_SR) ? ({20'b0, imm_I_instr}) : ({27'b0, imm_I_instr[4:0]});
 // Assign the output argument of the ALU depending on whether there's shifting going on or not
 assign alu_arg2_out = (imem_opcode == `OPCODE_R) ? reg_rd_data2_in : alu_arg2_imm;
 
@@ -131,7 +131,7 @@ wire [31:0] pc_next_default, pc_next_br, pc_next_jal, pc_next_jalr;
 assign pc_next_default = pc + 4;
 
 // * Branching (conditional jump)
-assign pc_next_br = pc + imm_B_instr;
+assign pc_next_br = pc + {22'b0, imm_B_instr};
 
 // * Branching conditions
 wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond;
@@ -158,10 +158,10 @@ assign br_cond = ((`FUNCT3_BEQ == funct3) && (br_eq))
 
 // * Jump (unconditional jump)
 // JAL
-assign pc_next_jal = pc + imm_J_instr;
+assign pc_next_jal = pc + {14'b0, imm_J_instr};
 
 // JALR (NOTE: rd_idx1, wr_idx already set)
-assign pc_next_jalr = reg_rd_data1_in + imm_I_instr;
+assign pc_next_jalr = reg_rd_data1_in + {20'b0, imm_I_instr};
 
 // register write for jump instruction
 wire [31:0] reg_data_out_jump;
@@ -182,7 +182,7 @@ wire [15:0] load_hw, load_hwu;
 wire [31:0] load_w;
 
 // data read index
-assign dmem_rd_addr_out = reg_rd_data1_in + imm_I_instr;
+assign dmem_rd_addr_out = reg_rd_data1_in + ({20'b0, imm_I_instr});
 
 // Load format
 assign load_b = dmem_rd_data_in[7:0];
@@ -223,7 +223,7 @@ assign store_b = (reg_rd_data2_in[7:0]);
 assign store_hw = (reg_rd_data2_in[15:0]);
 assign store_w = (reg_rd_data2_in[31:0]);
 
-assign dmem_wr_addr_out = reg_rd_data1_in + imm_S_instr;
+assign dmem_wr_addr_out = reg_rd_data1_in + ({20'b0, imm_S_instr});
 assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? {{24{store_b[7]}}, store_b} :
                         (funct3 == `FUNCT3_SH) ? {{16{store_hw[15]}}, store_hw} :
                         store_w;

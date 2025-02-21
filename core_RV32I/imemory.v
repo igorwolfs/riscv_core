@@ -3,12 +3,12 @@
 module imemory #(parameter mem_content_path = "tests/my.hex") (
     input clkin,
     // read
-    input rd_idx_in,
-    output rd_data_out
+    input [31:0] rd_addr_in,
+    output [31:0] rd_data_out
 );
 
-reg [255:0] RAM;
+reg [31:0] RAM [255:0];
 
-assign rd_data_out = RAM[rd_idx_in];
+assign rd_data_out = RAM[rd_addr_in];
 
 endmodule

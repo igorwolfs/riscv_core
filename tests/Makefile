@@ -52,10 +52,9 @@ obj_dir/V$(TESTBENCH_NAME): ${SRC_DIR}/* $(SRC_FILE)
 	../core_RV32I/alu.v \
 	../core_RV32I/single_ff.v \
 	../core_RV32I/registers.v \
-	../core_RV32I/testbenches/top_tb.sv \
 	../core_RV32I/testbenches/control_tb.sv \
 	-I../core_RV32I \
-	--top top_tb \
+	--top control_tb \
 	-j `nproc`
 # verilator $(VERILATOR_OPTS) ${CPP_FILE} $(SRC_FILE) -I$(INCLUDE_FILES) --top $(TOP_NAME) -j `nproc`
 # verilator	-cc	-Wno-NULLPORT	-Wno-COMBDLY	-Wno-PINMISSING	-Wno-MODDUP	--exe	--trace	--trace-structs	--build	--timing	src/sim_main.cpp	$(SRC_FILE)	-I$(SRC_DIR)	--top	$(TOP_NAME)	-j	`nproc`

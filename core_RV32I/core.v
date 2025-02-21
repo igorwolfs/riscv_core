@@ -15,7 +15,8 @@ module core #(parameter mem_content_path = "tests/my.hex",
     input  sysclk, nrst_in
   );
   // ALU COMMANDS
-  wire alu_cid, alu_arg1_in, alu_arg2_in, alu_arg_out;
+  wire [31:0] alu_arg1_in, alu_arg2_in, alu_arg_out;
+  wire [9:0] alu_cid;
 
   // REGISTER READ / WRITE
   wire reg_wr_en;
@@ -46,8 +47,8 @@ module core #(parameter mem_content_path = "tests/my.hex",
     // ALU CONTROL
     .alu_cid_out(alu_cid), .alu_arg1_out(alu_arg1_in), .alu_arg2_out(alu_arg2_in), .alu_arg_in(alu_arg_out),
     // REGISTER READ / WRITE
-    .reg_wr_en_out(reg_wr_en), .reg_wr_idx_out(reg_wr_idx), .reg_rd_idx1_out(reg_rd_idx1), .reg_rd_idx2_out (reg_rd_idx2),
-    .reg_wr_data_in(reg_wr_data), .reg_rd_data_1_out(reg_rd_data1), .reg_rd_data_2_out(reg_rd_data2),
+    .reg_wr_en_out(reg_wr_en), .reg_wr_data_out(reg_wr_data),  .reg_wr_idx_out(reg_wr_idx),
+    .reg_rd_idx1_out(reg_rd_idx1), .reg_rd_idx2_out (reg_rd_idx2), .reg_rd_data1_in(reg_rd_data1), .reg_rd_data2_in(reg_rd_data2),
     // PROGRAM COUNTER
     .pc(pc), .pc_next(pc_next),
     // DATA MEMORY
@@ -72,7 +73,7 @@ module core #(parameter mem_content_path = "tests/my.hex",
 
   // Instruction memory
   imemory #(.mem_content_path(mem_content_path)) imemory_t (.clkin(sysclk),
-  .rd_idx_in(pc), .rd_data_out(imem_instr));
+  .rd_addr_in(pc), .rd_data_out(imem_instr));
 
   // * REGISTERS
   registers #() registers_t (.clkin(sysclk), .nrst_in(nrst_in), // Sys

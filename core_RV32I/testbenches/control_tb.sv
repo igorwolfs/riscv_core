@@ -1,7 +1,6 @@
 `timescale 1ns/10ps
 
-module tb_control;
-
+module control_tb();
 
 // -------------------- DUT I/O --------------------
 reg  [31:0] alu_arg_in;        // ALU input
@@ -11,7 +10,7 @@ reg  [31:0] pc;                // Current PC
 reg  [31:0] dmem_rd_data_in;   // Data memory read data
 reg  [31:0] imem_in;           // Instruction memory data (the instruction)
 
-wire        alu_cid_out;       // Some ALU control bit
+wire [9:0] alu_cid_out;       // Some ALU control bit
 wire [31:0] alu_arg1_out;
 wire [31:0] alu_arg2_out;
 
@@ -29,8 +28,8 @@ wire [31:0] dmem_wr_data_out;
 wire [31:0] dmem_wr_addr_out;
 
 
-// -------------------- DUT Instance --------------------
-control dut (
+// ---2----------------- DUT Instance --------------------
+control #() control_dut (
     // ALU
     .alu_cid_out      (alu_cid_out),
     .alu_arg1_out     (alu_arg1_out),
@@ -139,5 +138,4 @@ initial begin
     #50;
     $finish;
 end
-
 endmodule

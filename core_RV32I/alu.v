@@ -28,10 +28,11 @@ localparam [9:0] CODE_SLT = {`FUNCT3_SLT, 7'b0};
 localparam [9:0] CODE_SLTU = {`FUNCT3_SLTU, 7'b0};
 
 
+// ARITHMETIC RIGHT SHIFT
 wire [63:0] SRA_tmp;
 wire [31:0] SRA_tmp_shifted;
-assign SRA_tmp = {{31{alu_arg1_in[31]}}, alu_arg1_in};
-assign SRA_tmp_shifted = SRA_tmp >> alu_arg2_in;
+assign SRA_tmp = {{32{alu_arg1_in[31]}}, alu_arg1_in};
+assign SRA_tmp_shifted = {SRA_tmp >> alu_arg2_in}[31:0];
 
 // Take the relevant instruction, perform a switch-case
 assign alu_arg_out = (alu_cid_in == CODE_SUM) ? (alu_arg1_in + alu_arg2_in) :
@@ -42,8 +43,8 @@ assign alu_arg_out = (alu_cid_in == CODE_SUM) ? (alu_arg1_in + alu_arg2_in) :
                 (alu_cid_in == CODE_SLL) ? (alu_arg1_in << alu_arg2_in) :
                 (alu_cid_in == CODE_SRL) ? (alu_arg1_in >> alu_arg2_in) :
                 (alu_cid_in == CODE_SRA) ? (SRA_tmp_shifted):
-                (alu_cid_in == CODE_SLT) ? (alu_arg1_in < alu_arg2_in) :
-                (alu_cid_in == CODE_SLTU) ? ($unsigned(alu_arg1_in) < $unsigned(alu_arg2_in)) :
+                (alu_cid_in == CODE_SLT) ? {32{(alu_arg1_in < alu_arg2_in)}} :
+                (alu_cid_in == CODE_SLTU) ? {32{($unsigned(alu_arg1_in) < $unsigned(alu_arg2_in))}} :
                 32'hff_ff_ff_ff;
 
 

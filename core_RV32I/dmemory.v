@@ -14,7 +14,7 @@ module dmemory #(parameter mem_content_path = "tests/my.hex",
     output [31:0] rd_data_out
 );
 
-reg ROM[255:0];
+reg [31:0] ROM[255:0];
 always @(posedge clkin)
 begin
     if (wr_en_in)
