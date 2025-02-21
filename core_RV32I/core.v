@@ -9,7 +9,8 @@ The program counter needs to be updated on every clock cycle.
 */
 
 
-module core
+module core #(parameter mem_content_path = "tests/my.hex",
+              parameter signature_path = "tests/my.sig")
   (
     input  sysclk, nrst_in
   );
@@ -45,7 +46,7 @@ module core
     // ALU CONTROL
     .alu_cid_out(alu_cid), .alu_arg1_out(alu_arg1_in), .alu_arg2_out(alu_arg2_in), .alu_arg_in(alu_arg_out),
     // REGISTER READ / WRITE
-    .reg_wr_en_out(reg_wr_en), .reg_wr_idx_in(reg_wr_idx), .reg_rd_idx1_in(reg_rd_idx1), .reg_rd_idx2_in (reg_rd_idx2),
+    .reg_wr_en_out(reg_wr_en), .reg_wr_idx_out(reg_wr_idx), .reg_rd_idx1_out(reg_rd_idx1), .reg_rd_idx2_out (reg_rd_idx2),
     .reg_wr_data_in(reg_wr_data), .reg_rd_data_1_out(reg_rd_data1), .reg_rd_data_2_out(reg_rd_data2),
     // PROGRAM COUNTER
     .pc(pc), .pc_next(pc_next),
@@ -57,7 +58,7 @@ module core
     );
 
   // * DATA MEMORY
-  dmemory #() dmemory_t (.clkin(sysclk), .nrst_in(nrst_in),
+  dmemory #(.mem_content_path(mem_content_path), .signature_path(signature_path)) dmemory_t (.clkin(sysclk), .nrst_in(nrst_in),
   .rd_data_out(dmem_rd_data), .rd_addr_in(dmem_rd_addr),
   .wr_en_in(dmem_wr_en), .wr_data_in(dmem_wr_data), .wr_addr_in(dmem_wr_addr)); // WRITE
 
@@ -70,7 +71,7 @@ module core
     .clkin(sysclk), .nrst_in(nrst_in), .data_in(pc_next), .data_out(pc));
 
   // Instruction memory
-  imemory #() imemory_t (.clkin(sysclk),
+  imemory #(.mem_content_path(mem_content_path)) imemory_t (.clkin(sysclk),
   .rd_idx_in(pc), .rd_data_out(imem_instr));
 
   // * REGISTERS

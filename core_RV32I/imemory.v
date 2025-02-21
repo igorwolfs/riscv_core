@@ -1,6 +1,6 @@
 `timescale 1ns/10ps
 
-module imemory (
+module imemory #(parameter mem_content_path = "tests/my.hex") (
     input clkin,
     // read
     input rd_idx_in,

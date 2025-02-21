@@ -1,3 +1,6 @@
+//! **** RUNTIME SETTINGS
+`define SIMULATION
+
 //! **** INSTRUCTIONS ****
 // 2-argument arithmetic instructions
 `define OPCODE_R 7'b0110011

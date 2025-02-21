@@ -2,6 +2,7 @@
 
 module tb_control;
 
+
 // -------------------- DUT I/O --------------------
 reg  [31:0] alu_arg_in;        // ALU input
 reg  [31:0] reg_rd_data1_in;   // Register read data 1
@@ -26,6 +27,7 @@ wire [31:0] dmem_rd_addr_out;
 wire        dmem_wr_en_out;
 wire [31:0] dmem_wr_data_out;
 wire [31:0] dmem_wr_addr_out;
+
 
 // -------------------- DUT Instance --------------------
 control dut (
@@ -70,7 +72,7 @@ initial begin
     reg_rd_data2_in  = 32'h0000_0000;
     pc               = 32'h0000_0100;
     dmem_rd_data_in  = 32'h0000_0000;
-    imem_in          = 32'h0000_0000;  
+    imem_in          = 32'h0000_0000;
 
     // Let signals settle
     #10;

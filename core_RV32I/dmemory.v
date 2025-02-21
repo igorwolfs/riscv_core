@@ -1,6 +1,7 @@
 `timescale 1ns/10ps
 
-module dmemory
+module dmemory #(parameter mem_content_path = "tests/my.hex",
+                parameter signature_path = "tests/my.sig")
 (
     input clkin,
     input nrst_in,
@@ -23,4 +24,5 @@ begin
 end
 
 assign rd_data_out = ROM[rd_addr_in];
+
 endmodule
