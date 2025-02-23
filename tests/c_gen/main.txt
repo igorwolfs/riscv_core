@@ -5,12 +5,27 @@ main.elf:     file format elf32-littleriscv
 Disassembly of section .text:
 
 00000000 <main>:
+- We decrement the stackpointer by -16 (immediate)
    0:	ff010113          	addi	sp,sp,-16
+- We write the return address to the memory address sp - 12 (sp is initially 0)
+   - So we'd access memory which we don't have. (0xfffff0 + 0xc)
    4:	00112623          	sw	ra,12(sp)
+- Store s0 to 8 + the stack pointer
    8:	00812423          	sw	s0,8(sp)
+- Add 16 to the stack pointer and store in s0 (which is 0-16+16=0)
    c:	01010413          	addi	s0,sp,16
+- do nothing
   10:	00000013          	nop
+- load word from 12 + stack pointer
+   - This will fail due to shitty memory limitations
   14:	00c12083          	lw	ra,12(sp)
+- load word from from 8 + stack pointer into s0
+   - Again, erroneous memory address
   18:	00812403          	lw	s0,8(sp)
+- Add 16 to the stack pointer
   1c:	01010113          	addi	sp,sp,16
+- ret?
   20:	00008067          	ret
+
+
+- https://stackoverflow.com/questions/58385750/what-do-these-opcodes-do

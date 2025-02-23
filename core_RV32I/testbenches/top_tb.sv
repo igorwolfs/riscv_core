@@ -5,13 +5,13 @@
 module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*1024 // 16 MB of memory
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
-    parameter MEM_ADDR_WIDTH = $clog2(MEMSIZE) + 2;
+    parameter MEM_ADDR_WIDTH = $clog2(MEMSIZE-1) + 2;
     reg sysclk = 0, nrst_in = 1;
     integer sig_file;
 
     // **** External memory interface (when INTERNAL_MEMORY = 0) ****
     // *** FILE HANDLING
-    reg [31:0] ext_memory [0:MEMSIZE-1]; // 16 MB of memory
+    reg [31:0] ext_memory [0:MEMSIZE]; // 16 MB of memory
     string mem_path, sig_path;
     initial begin
         if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen/main.hex";
@@ -83,7 +83,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*102
     initial
     begin
         nrst_in = 0;
-        #100;
+        #10;
         nrst_in = 1;
         #100;
     end
