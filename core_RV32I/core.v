@@ -26,7 +26,7 @@ module core #(
     
     // Instruction Memory Interface
     output wire [31:0] imem_addr,
-    input  wire [31:0] imem_data,
+    input  wire [31:0] imem_data
   );
 
   // Internal signals

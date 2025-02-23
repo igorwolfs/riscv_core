@@ -6,6 +6,8 @@ int main(int argc, char **argv)
 {
     // Construct context object, design object, and trace object
     VerilatedContext *m_contextp = new VerilatedContext; // Context
+    m_contextp->commandArgs(argc, argv);  // Add this line to pass command line args
+
     VerilatedVcdC *m_tracep = new VerilatedVcdC;         // Trace
     Vtop_tb *m_duvp = new Vtop_tb;                 // Design
     // Trace configuration
@@ -26,5 +28,7 @@ int main(int argc, char **argv)
     m_tracep->close();
     // Free memory
     delete m_duvp;
+    delete m_tracep;
+    delete m_contextp;  // Add this line
     return 0;
 }

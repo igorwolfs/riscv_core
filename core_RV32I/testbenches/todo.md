@@ -76,6 +76,11 @@ Done
 
 ## Signature generation
 
+### Loading a test into the sim
+
+- Check whether the instructions are correctly loaded into memory.
+-> Go to debugging_sim.md
+
 ## Signature comparison with reference
 
 It seems like in the neorv32 part of this happens by a macro defined in the model_test.h file:
