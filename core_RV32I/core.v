@@ -9,11 +9,30 @@ The program counter needs to be updated on every clock cycle.
 */
 
 
-module core #(parameter mem_content_path = "tests/my.hex",
-              parameter signature_path = "tests/my.sig")
+module core #(
+              // INTERNAL MEMORY TO INTERFACE WITH
+              parameter INTERNAL_MEMORY = 1'b1)
   (
-    input  sysclk, nrst_in
+    // SYSTEM
+    input  sysclk, nrst_in,
+
+    // External memory interface (when INTERNAL_MEMORY = 0)
+    // Data Memory Interface
+    output wire [31:0] dmem_rd_addr,
+    input  wire [31:0] dmem_rd_data,
+    output wire [31:0] dmem_wr_addr,
+    output wire [31:0] dmem_wr_data,
+    output wire        dmem_wr_en,
+    
+    // Instruction Memory Interface
+    output wire [31:0] imem_addr,
+    input  wire [31:0] imem_data,
   );
+
+  // Internal signals
+  wire [31:0] internal_dmem_rd_data;
+  wire [31:0] internal_imem_data;
+
   // ALU COMMANDS
   wire [31:0] alu_arg1_in, alu_arg2_in, alu_arg_out;
   wire [9:0] alu_cid;
@@ -26,12 +45,9 @@ module core #(parameter mem_content_path = "tests/my.hex",
   // PROGRAM COUNTER
   wire [31:0] pc, pc_next;
 
-  // DATA MEMORY
-  wire [31:0] dmem_rd_data;
-  wire [31:0] dmem_rd_addr;
-  wire [31:0] dmem_wr_data;
-  wire [31:0] dmem_wr_addr;
-  wire dmem_wr_en;
+  // Memory multiplexing based on INTERNAL_MEMORY parameter
+  wire [31:0] active_dmem_rd_data = INTERNAL_MEMORY ? internal_dmem_rd_data : dmem_rd_data;
+  wire [31:0] active_imem_data = INTERNAL_MEMORY ? internal_imem_data : imem_data;
 
   // INSTRUCTION MEMORY
   wire [31:0] imem_instr;
@@ -52,28 +68,41 @@ module core #(parameter mem_content_path = "tests/my.hex",
     // PROGRAM COUNTER
     .pc(pc), .pc_next(pc_next),
     // DATA MEMORY
-    .dmem_rd_data_in(dmem_rd_data), .dmem_rd_addr_out(dmem_rd_addr),
+    .dmem_rd_data_in(active_dmem_rd_data), .dmem_rd_addr_out(dmem_rd_addr),
     .dmem_wr_en_out(dmem_wr_en), .dmem_wr_data_out(dmem_wr_data), .dmem_wr_addr_out(dmem_wr_addr),
     // INSTRUCTION MEMORY
-    .imem_in(imem_instr)
+    .imem_in(active_imem_data)
     );
 
-  // * DATA MEMORY
-  dmemory #(.mem_content_path(mem_content_path), .signature_path(signature_path)) dmemory_t (.clkin(sysclk), .nrst_in(nrst_in),
-  .rd_data_out(dmem_rd_data), .rd_addr_in(dmem_rd_addr),
-  .wr_en_in(dmem_wr_en), .wr_data_in(dmem_wr_data), .wr_addr_in(dmem_wr_addr)); // WRITE
 
-  // * INSTRUCTION MEMORY
-  /*
-  Program counter: on clock out -> program counter is set to pc_next acquired from control-unit.
-  Program counter is then used in instruction memory fetch.
-  */
+    // Generate block for internal/external memory selection
+    generate
+      if (INTERNAL_MEMORY) begin : internal_memory
+          // Internal Data Memory
+          dmemory #() dmemory_t (
+              .clkin(sysclk),
+              .nrst_in(nrst_in),
+              .rd_data_out(internal_dmem_rd_data),
+              .rd_addr_in(dmem_rd_addr),
+              .wr_en_in(dmem_wr_en),
+              .wr_data_in(dmem_wr_data),
+              .wr_addr_in(dmem_wr_addr)
+          );
+
+          // Internal Instruction Memory
+          imemory #() imemory_t (
+              .clkin(sysclk),
+              .rd_addr_in(pc),
+              .rd_data_out(internal_imem_data)
+          );
+      end
+  endgenerate
+
+  // Program counter
   single_ff #(.WIDTH(32), .NRST_VAL(0)) pc_t (
     .clkin(sysclk), .nrst_in(nrst_in), .data_in(pc_next), .data_out(pc));
 
-  // Instruction memory
-  imemory #(.mem_content_path(mem_content_path)) imemory_t (.clkin(sysclk),
-  .rd_addr_in(pc), .rd_data_out(imem_instr));
+  assign imem_addr = pc;
 
   // * REGISTERS
   registers #() registers_t (.clkin(sysclk), .nrst_in(nrst_in), // Sys

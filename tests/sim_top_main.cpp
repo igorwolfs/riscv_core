@@ -1,13 +1,13 @@
 #include <verilated.h>
 #include "verilated_vcd_c.h"
-#include "Vcontrol_tb.h"
+#include "Vtop_tb.h"
 
 int main(int argc, char **argv)
 {
     // Construct context object, design object, and trace object
     VerilatedContext *m_contextp = new VerilatedContext; // Context
     VerilatedVcdC *m_tracep = new VerilatedVcdC;         // Trace
-    Vcontrol_tb *m_duvp = new Vcontrol_tb;                 // Design
+    Vtop_tb *m_duvp = new Vtop_tb;                 // Design
     // Trace configuration
     m_contextp->traceEverOn(true);     // Turn on trace switch in context
     m_duvp->trace(m_tracep, 3);        // Set depth to 3
