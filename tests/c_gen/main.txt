@@ -24,7 +24,8 @@ Disassembly of section .text:
   18:	00812403          	lw	s0,8(sp)
 - Add 16 to the stack pointer
   1c:	01010113          	addi	sp,sp,16
-- ret?
+- ret? -> Something is up with the last instruction that changes x0
+- Reg0 is supposed to be hardwired to 0, and all read / write instructions to it are to be ignored. Check ibex_register_file_ff.sv
   20:	00008067          	ret
 
 

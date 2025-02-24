@@ -22,7 +22,7 @@ always @(posedge clkin)
 begin
     if (~nrst_in)
         for (i=0; i<32; i=i+1)  regs[i] <= 32'b0;
-    else if (wr_en)
+    else if ((wr_en) && (wr_idx_in != 5'b0))
         regs[wr_idx_in] <= wr_data_in;
     else;
 end

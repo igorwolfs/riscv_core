@@ -2,18 +2,20 @@
 
 // 1 MB: 0b1111_11111111_11111111 = 20 bits = 0xFFFFF
 
-module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*1024 // 16 MB of memory
+module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MAKSING=1, parameter MEMSIZE=64//4*1024*1024 // 16 MB of memory
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
-    parameter MEM_ADDR_WIDTH = $clog2(MEMSIZE-1) + 2;
+    parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
     reg sysclk = 0, nrst_in = 1;
     integer sig_file;
 
     // **** External memory interface (when INTERNAL_MEMORY = 0) ****
     // *** FILE HANDLING
-    reg [31:0] ext_memory [0:MEMSIZE]; // 16 MB of memory
+    reg [31:0] ext_memory [0:MEMSIZE-1]; // 16 MB of memory
+    integer i;
     string mem_path, sig_path;
     initial begin
+        for (i=0; i<MEMSIZE; i=i+1)  ext_memory[i] = 32'b0;
         if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen/main.hex";
         if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/sim/tests/my.sig";
         $display(mem_path);
@@ -39,8 +41,8 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*102
 
 
     // Memory read logic  (Making sure any special address space is ignored)
-    assign dmem_rd_data = ext_memory[dmem_rd_addr[MEM_ADDR_WIDTH:2]];
-    assign imem_data = ext_memory[imem_addr[MEM_ADDR_WIDTH:2]];  // Instruction fetch
+    assign dmem_rd_data = ext_memory[dmem_rd_addr[MEMMAX_ADDR_IDX:2]];
+    assign imem_data = ext_memory[imem_addr[MEMMAX_ADDR_IDX:2]];  // Instruction fetch
 
     // Memory write logic
     always @(posedge sysclk)
@@ -50,8 +52,12 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*102
             begin
             if (dmem_wr_en)
                 begin
-                if (dmem_wr_addr[31:28] == 4'h0)
-                    ext_memory[dmem_wr_addr[MEM_ADDR_WIDTH:2]] <= dmem_wr_data;
+                $display(dmem_wr_addr);
+                $display(dmem_wr_addr[MEMMAX_ADDR_IDX:2]);
+                $display(dmem_wr_addr[MEMMAX_ADDR_IDX:0]);
+                //if (dmem_wr_addr[31:28] == 4'h0)
+                ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] <= dmem_wr_data;
+                  /*
                 else if (dmem_wr_addr == 32'hF0000004) // Address for signature write
                     begin
                     ext_memory[dmem_wr_addr[MEM_ADDR_WIDTH:2]] <= dmem_wr_data;
@@ -65,6 +71,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=32//4*1024*102
                     $finish;
                     end
                 else;
+                */
                 end
             else;
             end
