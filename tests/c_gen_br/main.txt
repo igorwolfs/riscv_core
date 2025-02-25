@@ -1,0 +1,49 @@
+
+main.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <main>:
+   0:	fe010113          	addi	sp,sp,-32
+   4:	00112e23          	sw	ra,28(sp)
+   8:	00812c23          	sw	s0,24(sp)
+   c:	02010413          	addi	s0,sp,32
+  10:	fe042623          	sw	zero,-20(s0)
+  14:	00200793          	li	a5,2
+  18:	fef42423          	sw	a5,-24(s0)
+  1c:	fec42703          	lw	a4,-20(s0)
+  20:	fe842783          	lw	a5,-24(s0)
+  24:	00f707b3          	add	a5,a4,a5
+  28:	fef42223          	sw	a5,-28(s0)
+  2c:	fe442703          	lw	a4,-28(s0)
+  30:	00300793          	li	a5,3
+- a5 > a4 here so should branch to <44+main> OK
+  34:	00e7d863          	bge	a5,a4,44 <main+0x44>
+  38:	00100793          	li	a5,1
+  3c:	fef42623          	sw	a5,-20(s0)
+  40:	0200006f          	j	60 <main+0x60>
+- load from memory -28 into a4
+  44:	fe442703          	lw	a4,-28(s0)
+- load 1 into x15
+  48:	00100793          	li	a5,1
+- branch to pc+0x58 (main+pc = 0x58) if a5 is smaller than a4
+  4c:	00e7c663          	blt	a5,a4,58 <main+0x58>
+  50:	fe042623          	sw	zero,-20(s0)
+  54:	00c0006f          	j	60 <main+0x60>
+- Load 2 into x15
+  58:	00200793          	li	a5,2
+- store x15 into 0x-20
+  5c:	fef42623          	sw	a5,-20(s0)
+- load it back (lol)
+  60:	fec42783          	lw	a5,-20(s0)
+- move a5 to a0
+  64:	00078513          	mv	a0,a5
+- load 0x28+sp into ra
+  68:	01c12083          	lw	ra,28(sp)
+- load 0x24 + sp into s0 (IGNORE)
+  6c:	01812403          	lw	s0,24(sp)
+- add 32 to sp
+  70:	02010113          	addi	sp,sp,32
+- jump back to 0
+  74:	00008067          	ret

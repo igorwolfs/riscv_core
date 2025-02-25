@@ -1,7 +1,7 @@
 
 int main(void)
 {
-	int a = 5;
+	int a = 0;
 	int b = 2;
 	int c = a + b;
 	if (c > 3)
@@ -30,8 +30,7 @@ int main(void)
  * Raw binary to one-32bit-word-per-line hex:
  * hexdump -v -e '1/4 "%08x\n"' main.bin > main.hex
  * 
-riscv32-unknown-elf-gcc -c main.c -o main.o
-riscv32-unknown-elf-ld -T link.ld main.o -o main.elf
+riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -O0 -nostartfiles -nostdlib -T link.ld main.c -o main.elf
 riscv32-unknown-elf-objcopy main.elf -O binary main.bin
 hexdump -v -e '1/4 "%08x\n"' main.bin > main.hex
  */
