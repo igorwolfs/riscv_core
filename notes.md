@@ -51,3 +51,19 @@ Or more specifically
 - https://en.wikipedia.org/wiki/Instruction_pipelining
 - https://en.wikipedia.org/wiki/Classic_RISC_pipeline
 - https://vivonomicon.com/2020/06/13/lets-write-a-minimal-risc-v-cpu-in-nmigen/
+
+# Comes in handy
+### If the top file can't be found
+Go to the folder and run the following command:
+
+```bash
+verilator --cc top_file.sv --exe sim_main.cpp --top fifo_async_circular_parallel_tb -o sim
+```
+
+### Running an example in vivado
+```bash
+riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -O0 -nostartfiles -nostdlib -T link.ld *.S -o my.elf
+riscv32-unknown-elf-objcopy my.elf -O binary my.bin
+hexdump -v -e '1/4 "%08x\n"' my.bin > my.hex
+riscv32-unknown-elf-objdump -d my.elf > my.txt
+```

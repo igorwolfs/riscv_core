@@ -74,12 +74,48 @@ Done
 - Works, for example: dut/my.elf
 - Disasembled
 
-## Signature generation
-
-### Loading a test into the sim
-
-- Check whether the instructions are correctly loaded into memory.
--> Go to debugging_sim.md
+### Overview of an example test (myadd-01.S)
+- rvtest_entry_point (seems like it prepares the registers for tests)
+  - Loading data from memory
+  - logical right shift with immediate
+  - OR
+- rvtest_code_begin 
+  - Program counter setup
+  - Global pointer setup (accessing global variables - x3) to (signature_x3_0)
+- inst_0 .. inst_587
+  - Tests for add instruction
+    - Load value
+    - Add value
+    - Store value
+- cleanup_epilogs
+  - jumps to 331c
+- exit_cleanup
+  - load "begin_signature" address into a0
+  - load "_end" address into a1
+  - Load "0xf0000004" into a2
+- signature_dump_loop
+  - if true: (a0 > a1): go to signature_dump_end
+  - otherwise
+    - Load from memory address [a0 (x10)] into [register t0]
+    - Store from register t0 into memory address [a2 (x12)]
+    - add 4 to register a0 (x10)
+- signature_dump_end
+  - Load 0xcafecafe into a1
+- terminate_simulation
+  - store a1 into memory address at a0 (IGNORE)
+  - jump to terminate_simulation (infinite loop)
+- rvtest_data_begin (data section)
+- begin_regstate
+- end_regstate
+- begin_signature
+- signature_x3_0
+- signature_x3_0
+- signature_x8_0
+- signature_x1_0
+- signature_x1_1
+- sig_end_canary
+  - 
+- rvtest_sig_end
 
 ## Signature comparison with reference
 
