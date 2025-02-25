@@ -25,7 +25,7 @@ Disassembly of section .text:
 - Add 16 to the stack pointer
   1c:	01010113          	addi	sp,sp,16
 - ret? -> Something is up with the last instruction that changes x0
-- Reg0 is supposed to be hardwired to 0, and all read / write instructions to it are to be ignored. Check ibex_register_file_ff.sv
+- Reg0 is supposed to be hardwired to 0, and all read / write instructions to it are to be ignored.
 - jalr x0, 0(x1) -> jump to the address stored in "ra"(return-address)-register = x1 
    - (x0 is the destination address, so we jump to the address in ra and save the jump address in x0 - which is then discarded due to hardwiring)
   20:	00008067          	ret

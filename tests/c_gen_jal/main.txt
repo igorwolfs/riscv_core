@@ -1,0 +1,73 @@
+
+main.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <main>:
+- Reduce stack pointer by 32
+   0:	fe010113          	addi	sp,sp,-32
+- Add return address onto sp (-4)
+   4:	00112e23          	sw	ra,28(sp)
+- Add s0 to -8
+   8:	00812c23          	sw	s0,24(sp)
+- Add 32 to stack pointer and store in s0
+   c:	02010413          	addi	s0,sp,32
+- Load 10 to x15
+  10:	00a00793          	li	a5,10
+- Store x15 (so 0xa) to address -20
+  14:	fef42623          	sw	a5,-20(s0)
+- Load 20 (0x14) into register x15
+  18:	01400793          	li	a5,20
+- Store a5 into -24
+  1c:	fef42423          	sw	a5,-24(s0)
+- Load the last value into x11 (so 0x14 : 20)
+  20:	fe842583          	lw	a1,-24(s0)
+- Load value at -20 (so 0xa : 10) to x10
+  24:	fec42503          	lw	a0,-20(s0)
+- Jump to the address of PC + 44 (PC = x1)
+- Store the address of the next instruction into the ra-register (x1)
+- increment pc to address 0x44 using an immediate offset
+  28:	01c000ef          	jal	44 <sub>
+- store -28 into address pointed to by x10 (a0)
+  2c:	fea42223          	sw	a0,-28(s0)
+- Do nothing
+  30:	00000013          	nop
+- load value at memory(sp+28) into return address
+  34:	01c12083          	lw	ra,28(sp)
+- Load value at memory(24+sp into 0) (so do nothing)
+  38:	01812403          	lw	s0,24(sp)
+- Add 32 to sp
+  3c:	02010113          	addi	sp,sp,32
+- Jump to instruction at x1 and store destination addres into x0
+  40:	00008067          	ret
+
+00000044 <sub>:
+- Add -32 to sp (x2)
+  44:	fe010113          	addi	sp,sp,-32
+- Store sp in sp+28
+  48:	00112e23          	sw	ra,28(sp)
+- store s0 in sp+24
+  4c:	00812c23          	sw	s0,24(sp)
+- add 32 to sp and store in s0
+  50:	02010413          	addi	s0,sp,32
+- stores s0-20 into a0 (x10)
+  54:	fea42623          	sw	a0,-20(s0)
+- stores s0-24 into a1 (x11)
+  58:	feb42423          	sw	a1,-24(s0)
+- load from addr(s0-20) into a4
+  5c:	fec42703          	lw	a4,-20(s0)
+- loads from addr (so-24) into a5
+  60:	fe842783          	lw	a5,-24(s0)
+- We subtract a4 from a5 and store into a4 (0x0a - 0x14) = 0xfff6
+  64:	40f707b3          	sub	a5,a4,a5
+- Move a5 to a0
+  68:	00078513          	mv	a0,a5
+- load value from addr(sp+28) into ra (x1)
+  6c:	01c12083          	lw	ra,28(sp)
+- load sp + 24 onto s0
+  70:	01812403          	lw	s0,24(sp)
+- add 32 to sp (x2)
+  74:	02010113          	addi	sp,sp,32
+- ret: jalr x0, 0(x1) -> jump to addr on x1 and store the destination address into x0 (so gets lost)
+  78:	00008067          	ret

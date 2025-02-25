@@ -70,13 +70,13 @@ assign dmem_wr_en_out = (imem_opcode == `OPCODE_S);
 wire [11:0] imm_I_instr, imm_S_instr;
 wire [9:0] imm_B_instr;
 wire [31:0] imm_U_instr_ls;
-wire [17:0] imm_J_instr;
+wire [19:0] imm_J_instr;
 
 assign imm_I_instr = imem_in[31:20]; // 12 bits
 assign imm_S_instr = {imem_in[31:25], imem_in[11:7]}; // 12 bits
 assign imm_B_instr = {imem_in[30:25], imem_in[11:8]}; // 10 bits
 assign imm_U_instr_ls = {imem_in[31:12], 12'b0}; // 20 bits
-assign imm_J_instr = {imem_in[30:21], imem_in[19:12]}; // 18 bits
+assign imm_J_instr = {imem_in[31], imem_in[19:12], imem_in[20], imem_in[30:21]}; // 20 bits
 
 
 // Immediate I extended
@@ -84,7 +84,7 @@ wire [31:0] imm_I_extended, imm_S_extended, imm_B_extended, imm_J_extended;
 assign imm_I_extended = {{20{imm_I_instr[11]}}, imm_I_instr};
 assign imm_S_extended = {{20{imm_S_instr[11]}}, imm_S_instr};
 assign imm_B_extended = {{22{imm_B_instr[9]}}, imm_B_instr};
-assign imm_J_extended = {{14{imm_J_instr[17]}}, imm_J_instr};
+assign imm_J_extended = {{12{imm_J_instr[19]}}, imm_J_instr} << 1;
 
 // ******************* DEFAULT DECODING (READ/WRITE, FUNCT3, FUNCT7) **********************
 
