@@ -76,12 +76,15 @@ Done
 
 ### Overview of an example test (myadd-01.S)
 - rvtest_entry_point (seems like it prepares the registers for tests)
-  - Loading data from memory
-  - logical right shift with immediate
-  - OR
+  - ACTIONS: Loading data from memory, logical right shift with immediate, OR
+  - LABELS:
+    - rvtest_entry_point: entry label
+    - RVMODEL_BOOT (hw init, does nothing now)
 - rvtest_code_begin 
   - Program counter setup
-  - Global pointer setup (accessing global variables - x3) to (signature_x3_0)
+  - Global pointer setup (accessing global variables - x3) to (signature_x3_0) 
+  - RVTEST_CODE_BEGIN (inits test code label, .text section)
+  - RVTEST_CASE
 - inst_0 .. inst_587
   - Tests for add instruction
     - Load value

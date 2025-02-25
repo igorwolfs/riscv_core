@@ -2,7 +2,7 @@
 
 // 1 MB: 0b1111_11111111_11111111 = 20 bits = 0xFFFFF
 
-module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=64//4*1024*1024 // 16 MB of memory
+module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536/4)//4*1024*1024 // 16 MB of memory
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
     parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
@@ -15,15 +15,14 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=64//4*1024*102
     integer i;
     string mem_path, sig_path;
     initial begin
-        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_br/main.hex";
-        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/sim/tests/my.sig";
+        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/add-01.S/dut/my.hex";
+        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/add-01.S/dut/my.sig";
         $display(mem_path);
         // Load memory file
         $readmemh(mem_path, ext_memory);
 
         // Open signature file
         sig_file = $fopen(sig_path, "w");
-        $fdisplay(sig_file, "STARTING FILE WRITE\r\n");
         if (sig_file == 0) begin
             $display("Error: Could not open signature file %s", sig_path);
             $finish;
@@ -51,26 +50,20 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=64//4*1024*102
             begin
             if (dmem_wr_en)
                 begin
-                $display(dmem_wr_addr);
-                $display(dmem_wr_addr[MEMMAX_ADDR_IDX:2]);
-                $display(dmem_wr_addr[MEMMAX_ADDR_IDX:0]);
-                //if (dmem_wr_addr[31:28] == 4'h0)
-                ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] <= dmem_wr_data;
-                  /*
-                else if (dmem_wr_addr == 32'hF0000004) // Address for signature write
-                    begin
-                    ext_memory[dmem_wr_addr[MEM_ADDR_WIDTH:2]] <= dmem_wr_data;
+                if (dmem_wr_addr == 32'hF0000004)
+                begin
+                    ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] <= dmem_wr_data;
                     // Example: Write to signature file on memory writes
-                    $fdisplay(sig_file, "Write to addr %h: data %h\r\n", dmem_wr_addr, dmem_wr_data);
-                    end
-                else if ((dmem_wr_addr == 32'hCAFECAFE) && (dmem_wr_data == 32'hF0000000))
+                    $fdisplay(sig_file, "%h", dmem_wr_data);
+                end
+                else if ((dmem_wr_data == 32'hCAFECAFE) && (dmem_wr_addr == 32'hF0000000))
                     begin
                     $display("Finishing simulation.");
                     $fclose(sig_file);
                     $finish;
                     end
-                else;
-                */
+                else
+                    ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] <= dmem_wr_data;
                 end
             else;
             end

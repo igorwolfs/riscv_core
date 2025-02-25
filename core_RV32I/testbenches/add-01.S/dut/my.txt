@@ -95,7 +95,11 @@ Disassembly of section .text:
      154:	00000013          	nop
      158:	00000013          	nop
      15c:	00000013          	nop
+- Probably through command [RVTEST_SIGBASE( x3,signature_x3_1)]
+- Add 0x5000 (12 bit left-shift) to the program counter and store it in gp (x3)
+- PC was 0x160 + 0x5000 = 0x5160
      160:	00005197          	auipc	gp,0x5
+- Add -76 to global pointer -> becomes 0x5114 = signature_x3_0
      164:	fb418193          	addi	gp,gp,-76 # 5114 <signature_x3_0>
      168:	00000013          	nop
      16c:	00000013          	nop
@@ -105,16 +109,33 @@ Disassembly of section .text:
      17c:	00000013          	nop
 
 00000180 <inst_0>:
+- Load unsigned integer 0x80000  << 3 (12 bits left) to tp register (x4)
      180:	80000237          	lui	tp,0x80000
+- Add -1 to tp (x4) thread-register
      184:	fff20213          	addi	tp,tp,-1 # 7fffffff <absimm+0x3ad0dad0>
+- Load 1 to s8 (x24) (s2 = x18)
      188:	00100c13          	li	s8,1
+- Add x24 to x4 and store result in x4
      18c:	01820c33          	add	s8,tp,s8
+- store x0 to memory location pointed to by gp-reg (x3) (signature_x3_0-region)
+
+
+// **************** COMMENTS ******************* //
+How do we know this is the signature region?
+- On the instruction execution, the read-address for some reason points to DEADBEEF-data.
+- The write address does as well.
+    - IF: all the write-addresses in the signature region are deadbeef => We can write all deadbeef-meant writes to memory AND to the signature file!
+    - IS that the case?
+- 
+// **************** COMMENTS ******************* //
+
      190:	0181a023          	sw	s8,0(gp)
 
 00000194 <inst_1>:
      194:	00020537          	lui	a0,0x20
      198:	00020537          	lui	a0,0x20
      19c:	00a50e33          	add	t3,a0,a0
+- Outcome of the write is written to the same address as before incremented by 4 bytes
      1a0:	01c1a223          	sw	t3,4(gp)
 
 000001a4 <inst_2>:
@@ -209,15 +230,23 @@ Disassembly of section .text:
      29c:	556c8c93          	addi	s9,s9,1366 # 55555556 <absimm+0x10263027>
      2a0:	02000a13          	li	s4,32
      2a4:	014c8db3          	add	s11,s9,s4
+- test 15 writes to signature region 3 (0x5114 + 0x60 = 0x5150)
+- This is already in the next region though (signature_x8_0 + 0x16)
      2a8:	03b1ae23          	sw	s11,60(gp)
 
-000002ac <inst_16>:
+000002ac <inst_16>
+- Load immediate -17 into a5 (x15)
      2ac:	fef00793          	li	a5,-17
+- Load immediate 64 into s10 (x27)
      2b0:	04000d13          	li	s10,64
+- Add x15 to x27 and store in x17 (a7)
      2b4:	01a788b3          	add	a7,a5,s10
+- Store a7 into gp + 64 (so still counting from the gp)
+- Stores to address 0x5154
      2b8:	0511a023          	sw	a7,64(gp)
      2bc:	00000013          	nop
      2c0:	00005417          	auipc	s0,0x5
+- s0 (x8) now contains 0x5158, Now we continue counting from here for some reason.
      2c4:	e9840413          	addi	s0,s0,-360 # 5158 <signature_x8_0>
      2c8:	00000013          	nop
      2cc:	00000013          	nop
@@ -4460,17 +4489,34 @@ Disassembly of section .text:
     3318:	0040006f          	j	331c <exit_cleanup>
 
 0000331c <exit_cleanup>:
+- x10 (a0) contains 0x5110 (pc + 0y2 << 3) (signature begin memory)
     331c:	00002517          	auipc	a0,0x2
     3320:	df450513          	addi	a0,a0,-524 # 5110 <begin_signature>
+- a1 contains 0x5a50 (pc + 0x2<<3)
     3324:	00002597          	auipc	a1,0x2
     3328:	72c58593          	addi	a1,a1,1836 # 5a50 <_end>
+- Load 0xf0000 << 3 into a2 (x12)
     332c:	f0000637          	lui	a2,0xf0000
+- Add 4 to a2 and store in a2 (f0000004)
     3330:	00460613          	addi	a2,a2,4 # f0000004 <immx+0x352f2534>
 
 00003334 <signature_dump_loop>:
     3334:	00b55a63          	bge	a0,a1,3348 <signature_dump_end>
+- load value from a0 into t0
     3338:	00052283          	lw	t0,0(a0)
+
+// ************************** COMMENTS **********************************
+
+- Write value from t0 to a2 (0xf00000004)
+- this is supposed to be our stop condition. The moment this happens the simulation should quit.
+- This write-loop will happen UNTIL a0 is equal to a1, 
+    - a.k.a. the signature region has been completely written to address 0xf0000004
+    - We need to wait until everything is written to this region and then quit.
+
+// ************************** COMMENTS **********************************
+
     333c:	00562023          	sw	t0,0(a2)
+- Add 4 to a0 (x10)
     3340:	00450513          	addi	a0,a0,4
     3344:	ff1ff06f          	j	3334 <signature_dump_loop>
 
@@ -4480,6 +4526,14 @@ Disassembly of section .text:
     3350:	afe58593          	addi	a1,a1,-1282 # cafecafe <immx+0x102df02e>
 
 00003354 <terminate_simulation>:
+
+// ************************** COMMENTS **********************************
+
+WHEN THE SIMULATION ENDS
+- The value 0xcafecafe is written to address 0xf0000000
+- THEN WE QUIT (it simply keeps writing this in an endless loop, writing and then jumping back to 0x3354 in memory)
+
+// ************************** COMMENTS **********************************
     3354:	00b52023          	sw	a1,0(a0) # f0000000 <immx+0x352f2530>
     3358:	ffdff06f          	j	3354 <terminate_simulation>
 	...
