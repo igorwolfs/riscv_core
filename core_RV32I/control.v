@@ -81,7 +81,7 @@ assign imm_J_instr = {imem_in[30:21], imem_in[19:12]}; // 18 bits
 
 // Immediate I extended
 wire [31:0] imm_I_extended, imm_S_extended, imm_B_extended, imm_J_extended;
-assign imm_I_extended = {{20{imm_I_instr[10]}}, imm_I_instr};
+assign imm_I_extended = {{20{imm_I_instr[11]}}, imm_I_instr};
 assign imm_S_extended = {{20{imm_S_instr[11]}}, imm_S_instr};
 assign imm_B_extended = {{22{imm_B_instr[9]}}, imm_B_instr};
 assign imm_J_extended = {{14{imm_J_instr[17]}}, imm_J_instr};

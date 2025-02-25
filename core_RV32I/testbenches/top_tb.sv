@@ -2,7 +2,7 @@
 
 // 1 MB: 0b1111_11111111_11111111 = 20 bits = 0xFFFFF
 
-module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MAKSING=1, parameter MEMSIZE=64//4*1024*1024 // 16 MB of memory
+module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=64//4*1024*1024 // 16 MB of memory
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
     parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
@@ -15,7 +15,6 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MAKSING=1, parameter M
     integer i;
     string mem_path, sig_path;
     initial begin
-        for (i=0; i<MEMSIZE; i=i+1)  ext_memory[i] = 32'b0;
         if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen/main.hex";
         if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/sim/tests/my.sig";
         $display(mem_path);
@@ -90,7 +89,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MAKSING=1, parameter M
     initial
     begin
         nrst_in = 0;
-        #10;
+        #15;
         nrst_in = 1;
         #100;
     end

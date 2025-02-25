@@ -1,0 +1,48 @@
+
+main.elf:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00000000 <main>:
+- Decrement sp (s2) by 32 bytes (8 address spaces) below 0
+   0:	fe010113          	addi	sp,sp,-32
+- Move return addressto 28 + sp
+   4:	00112e23          	sw	ra,28(sp)
+- store word (s0) to 24 + sp
+   8:	00812c23          	sw	s0,24(sp)
+- Add 32 to sp and store in s0
+   c:	02010413          	addi	s0,sp,32
+- Load upper immediate 0xd to a5 (load 0xd to upper 20 bits, set lower 12 to 0)
+  10:	0000d7b7          	lui	a5,0xd
+- Add -1282 to a5 (which currently has 0x0000d000 = ) -> Should become
+- 53248 (0xd000) + (-1282) (0xFAFE) = 0xCAFE
+- For some reason FAFE is not loaded, only AFE
+- So figure out why this isn't 0xFAFE (check the immediate_I calculation)
+  14:	afe78793          	addi	a5,a5,-1282 # cafe <_end+0xcab6>
+- Store the modified value from a5 into memory address s0-20
+- Question: what is a5? -> a0 .. a7 are ABI names for the return registers (x10-x17)
+- So x15 = a5, so store x15 into register address -20
+  18:	fef42623          	sw	a5,-20(s0)
+- Load unsigned immediate 0xcafe0 into register x15
+- Why does ours appare as cafe0000? Because our value is shifted by 12 bits as part of the lui-instruction.
+  1c:	cafe07b7          	lui	a5,0xcafe0
+- Store a15 into -24 memory
+  20:	fef42423          	sw	a5,-24(s0)
+- load what's in address s0-20 (0xcafe) into x14 / a4
+  24:	fec42703          	lw	a4,-20(s0)
+- Load what's in address (s0-24) (0xcafe0000) into register x15 (was already there)
+  28:	fe842783          	lw	a5,-24(s0)
+- add registers a4 and a5 and store result in a5 (cafecafe)
+  2c:	00f707b3          	add	a5,a4,a5
+- Store a5 into s0-28 (cafecafe stored in memory)
+  30:	fef42223          	sw	a5,-28(s0)
+- Do nothing
+  34:	00000013          	nop
+  38:	01c12083          	lw	ra,28(sp)
+- Load 28+sp into x1 (ra) (=0)
+  3c:	01812403          	lw	s0,24(sp)
+- Add 32 to the stack pointer (x2) -> becomes 0
+  40:	02010113          	addi	sp,sp,32
+- jump to return address
+  44:	00008067          	ret
