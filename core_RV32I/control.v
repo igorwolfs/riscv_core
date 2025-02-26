@@ -34,6 +34,18 @@ module control (
     input [31:0] imem_in
 );
 
+// funct3, funct7 is the code
+localparam [9:0] CODE_SUM = {`FUNCT3_ADD, 7'b0};
+localparam [9:0] CODE_SUB = {`FUNCT3_ADD, `FUNCT7_SUB};
+localparam [9:0] CODE_XOR = {`FUNCT3_XOR, 7'b0};
+localparam [9:0] CODE_OR = {`FUNCT3_OR, 7'b0};
+localparam [9:0] CODE_AND = {`FUNCT3_AND, 7'b0};
+localparam [9:0] CODE_SLL = {`FUNCT3_SLL, 7'b0};
+localparam [9:0] CODE_SRL = {`FUNCT3_SR, 7'b0};
+localparam [9:0] CODE_SRA = {`FUNCT3_SR, `FUNCT7_SRA};
+localparam [9:0] CODE_SLT = {`FUNCT3_SLT, 7'b0};
+localparam [9:0] CODE_SLTU = {`FUNCT3_SLTU, 7'b0};
+
 
 // **************************** INSTRUCTION TYPE *********************
 wire imm_instr, alu_instr, pc_instr;
@@ -119,8 +131,15 @@ assign alu_arg1_out = reg_rd_data1_in;
 
 // Part of the immediate will be used as sub-code.
 assign alu_arg2_imm = (funct3 != `FUNCT3_SR) ? imm_I_extended : ({27'b0, imm_I_instr[4:0]});
+
+// In case of an SRL, SRA or SLL only the first 5 bits are used for the shift
+wire alu_shift_op;
+assign alu_shift_op = ((alu_cid_out == CODE_SRL) || (alu_cid_out == CODE_SLL) || (alu_cid_out == CODE_SRA));
+
 // Assign the output argument of the ALU depending on whether there's shifting going on or not
-assign alu_arg2_out = (imem_opcode == `OPCODE_R) ? reg_rd_data2_in : alu_arg2_imm;
+assign alu_arg2_out = (imem_opcode == `OPCODE_R) && (!alu_shift_op) ? reg_rd_data2_in :
+                        (imem_opcode == `OPCODE_R) && (alu_shift_op) ? {27'b0, reg_rd_data2_in[4:0]} : 
+                        alu_arg2_imm;
 
 // *** ALU OUTPUT STORING ***
 wire [31:0] reg_data_out_alu;
@@ -190,7 +209,10 @@ wire [15:0] load_hw, load_hwu;
 wire [31:0] load_w;
 
 // data read index
-assign dmem_rd_addr_out = reg_rd_data1_in + imm_I_extended;
+// - (if it's a load instruction -> read from dmem_rd_addr
+// - (if it's a store instruction -> make sure to read from dmem_wr_addr so you can mask)
+assign dmem_rd_addr_out = (imem_opcode == `OPCODE_I_LOAD) ? (reg_rd_data1_in + imm_I_extended) :
+                        (dmem_wr_addr_out);
 
 // Load format
 assign load_b = dmem_rd_data_in[7:0];
@@ -232,8 +254,8 @@ assign store_hw = (reg_rd_data2_in[15:0]);
 assign store_w = (reg_rd_data2_in[31:0]);
 
 assign dmem_wr_addr_out = reg_rd_data1_in + imm_S_extended;
-assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? {{24{store_b[7]}}, store_b} :
-                        (funct3 == `FUNCT3_SH) ? {{16{store_hw[15]}}, store_hw} :
+assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? {{dmem_rd_data_in[31:8]}, store_b} :
+                        (funct3 == `FUNCT3_SH) ? {{dmem_rd_data_in[31:16]}, store_hw} :
                         store_w;
 
 endmodule
