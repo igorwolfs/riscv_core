@@ -67,3 +67,4 @@ riscv32-unknown-elf-objcopy my.elf -O binary my.bin
 hexdump -v -e '1/4 "%08x\n"' my.bin > my.hex
 riscv32-unknown-elf-objdump -d my.elf > my.txt
 ```
+

@@ -149,7 +149,7 @@ assign br_eq = (reg_rd_data1_in == reg_rd_data2_in);
 assign br_ne = !br_eq;
 
 // Numbers in verilog are signed by default
-assign br_blt = (reg_rd_data1_in < reg_rd_data2_in);
+assign br_blt = ($signed(reg_rd_data1_in) < $signed(reg_rd_data2_in));
 assign br_bge = !br_blt;
 
 // Unsigned

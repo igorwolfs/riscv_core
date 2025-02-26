@@ -7,24 +7,26 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
     parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
     reg sysclk = 0, nrst_in = 1;
-    integer sig_file;
+    integer sig_file, siglog_file;
 
     // **** External memory interface (when INTERNAL_MEMORY = 0) ****
     // *** FILE HANDLING
     reg [31:0] ext_memory [0:MEMSIZE-1]; // 16 MB of memory
     integer i;
-    string mem_path, sig_path;
+    string mem_path, sig_path, siglog_path;
     initial begin
-        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/add-01.S/dut/my.hex";
-        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/add-01.S/dut/my.sig";
-        $display(mem_path);
+        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/bge-01.S/dut/my.hex";
+        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/bge-01.S/dut/my.sig";
+        if (!$value$plusargs("SIGLOG_PATH=%s", siglog_path)) siglog_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/bge-01.S/dut/my.sig.log";
         // Load memory file
         $readmemh(mem_path, ext_memory);
 
         // Open signature file
         sig_file = $fopen(sig_path, "w");
-        if (sig_file == 0) begin
+        siglog_file = $fopen(siglog_path, "w");
+        if ((sig_file == 0) || (siglog_file == 0)) begin
             $display("Error: Could not open sisgnature file %s", sig_path);
+            $display("Error: Could not open sisgnature file %s", siglog_file);
             $finish;
         end
     end
@@ -60,6 +62,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
                     begin
                     $display("Finishing simulation.");
                     $fclose(sig_file);
+                    $fclose(siglog_file);
                     $finish;
                     end
                 else
@@ -68,6 +71,16 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
             else;
             end
     end
+    always @(posedge sysclk)
+    begin
+        if ((dmem_wr_en) && (ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] == 32'hDEADBEEF))
+        begin
+            $fdisplay(siglog_file, "data_address: %h, signature: %h", dmem_wr_addr, dmem_wr_data);
+            $fdisplay(siglog_file, "imem_address: %h, imem_data: %h", imem_addr, imem_data);
+            $fdisplay(siglog_file, "");
+        end
+    end
+
     // ***** CLOCK *****
     always #5 sysclk = ~sysclk;
 

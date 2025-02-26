@@ -44,8 +44,8 @@ assign alu_arg_out = (alu_cid_in == CODE_SUM) ? (alu_arg1_in + alu_arg2_in) :
                 (alu_cid_in == CODE_SLL) ? (alu_arg1_in << alu_arg2_in) :
                 (alu_cid_in == CODE_SRL) ? (alu_arg1_in >> alu_arg2_in) :
                 (alu_cid_in == CODE_SRA) ? (SRA_tmp_shifted_32):
-                (alu_cid_in == CODE_SLT) ? {32{(alu_arg1_in < alu_arg2_in)}} :
-                (alu_cid_in == CODE_SLTU) ? {32{($unsigned(alu_arg1_in) < $unsigned(alu_arg2_in))}} :
+                (alu_cid_in == CODE_SLT) ? {{31{1'b0}}, {($signed(alu_arg1_in) < $signed(alu_arg2_in))}} :
+                (alu_cid_in == CODE_SLTU) ? {{31{1'b0}}, {($unsigned(alu_arg1_in) < $unsigned(alu_arg2_in))}} :
                 32'hff_ff_ff_ff;
 
 

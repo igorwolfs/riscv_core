@@ -1,0 +1,15 @@
+# Buggy instructions
+- bge
+- blt
+- LB-align
+- LBU-align
+- h-align
+- lhu-align
+- sb-align
+- sh-align
+- sll-align
+- slti-align
+- sltiu
+- sltu
+- sra
+- srl
