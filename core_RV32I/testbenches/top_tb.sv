@@ -2,7 +2,7 @@
 
 // 1 MB: 0b1111_11111111_11111111 = 20 bits = 0xFFFFF
 
-module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536/4)//4*1024*1024 // 16 MB of memory
+module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1024*1024 // 16 MB of memory
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
     parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
@@ -24,7 +24,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536/4)//4*1
         // Open signature file
         sig_file = $fopen(sig_path, "w");
         if (sig_file == 0) begin
-            $display("Error: Could not open signature file %s", sig_path);
+            $display("Error: Could not open sisgnature file %s", sig_path);
             $finish;
         end
     end

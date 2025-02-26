@@ -120,9 +120,14 @@ Done
   - 
 - rvtest_sig_end
 
-## Signature comparison with reference
+# ISSUE
+- For some reason inside the ADD-file it
+  - x10 (a0) keeps incrementing until 0x5a50 instead of 0x5a40
+  - x11 (a1) is set at 0x5a50 for some reason, it should have been set to 0x5a40
+    - I don't know exactly why this is set to 0x5a50 instead. It is in fact incremented with an immediate for some reason to 5a50.
 
-It seems like in the neorv32 part of this happens by a macro defined in the model_test.h file:
+ ## Signature comparison with reference
+ 
 ```C
 // this will dump the test results (signature) via the testbench dump module.
 #define RVMODEL_HALT                                   \
@@ -144,9 +149,8 @@ It seems like in the neorv32 part of this happens by a macro defined in the mode
       j    terminate_simulation
 ```
 
-It also seems like there's a difference in alignment (2 for the riscv-sail, 4 for the neorv32).
+For some reason the RVMODEL_HALT loads some wrong end-signature into a1.
 
-For now let's use the
-- Linker script of the neorv32, since there is no mmu, memory is completely contiguous starting at 0x0
-
-!NOTE: this doesn't mean overlap between memory regions, it means sequential placement.
+So: why does it take _end instead of _end_signature?
+It should take 
+- sig_end_canary
