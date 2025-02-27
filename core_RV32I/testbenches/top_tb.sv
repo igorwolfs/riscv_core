@@ -15,9 +15,9 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     integer i;
     string mem_path, sig_path, siglog_path;
     initial begin
-        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/srl-01.S/dut/my.hex";
-        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/srl-01.S/dut/my.sig";
-        if (!$value$plusargs("SIGLOG_PATH=%s", siglog_path)) siglog_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/core_RV32I/testbenches/srl-01.S/dut/my.sig.log";
+        if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/sb-align-01.S/dut/my.hex";
+        if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/sb-align-01.S/dut/my.sig";
+        if (!$value$plusargs("SIGLOG_PATH=%s", siglog_path)) siglog_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/sb-align-01.S/dut/my.sig.log";
         // Load memory file
         $readmemh(mem_path, ext_memory);
 

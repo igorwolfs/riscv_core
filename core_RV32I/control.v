@@ -215,18 +215,34 @@ assign dmem_rd_addr_out = (imem_opcode == `OPCODE_I_LOAD) ? (reg_rd_data1_in + i
                         (dmem_wr_addr_out);
 
 // Load format
-assign load_b = dmem_rd_data_in[7:0];
-assign load_hw = dmem_rd_data_in[15:0];
-assign load_w = dmem_rd_data_in[31:0];
-assign load_bu = $unsigned(dmem_rd_data_in[7:0]);
-assign load_hwu = $unsigned(dmem_rd_data_in[15:0]);
+// Get first 2 bits
 
+// If 2 byte offset is 0, 1, 2, 3 -> change relevant byte loaded
+
+assign load_b = (dmem_rd_addr_out[1:0] == 2'b00) ? dmem_rd_data_in[7:0] :
+                (dmem_rd_addr_out[1:0] == 2'b01) ? dmem_rd_data_in[15:8] :
+                (dmem_rd_addr_out[1:0] == 2'b10) ? dmem_rd_data_in[23:16] :
+                dmem_rd_data_in[31:24];
+
+assign load_hw = (dmem_rd_addr_out[1:0] == 2'b00) ? dmem_rd_data_in[15:0] :
+                dmem_rd_data_in[31:16];
+
+assign load_w = dmem_rd_data_in[31:0];
+/*
+assign load_bu = (dmem_rd_addr_out[1:0] == 2'b00) ? $unsigned(dmem_rd_data_in[7:0]) :
+                (dmem_rd_addr_out[1:0] == 2'b01) ? $unsigned(dmem_rd_data_in[15:8]) :
+                (dmem_rd_addr_out[1:0] == 2'b10) ? $unsigned(dmem_rd_data_in[23:16]) :
+                $unsigned(dmem_rd_data_in[31:24]);
+
+assign load_hwu = (dmem_rd_addr_out[1:0] == 2'b00) ? $unsigned(dmem_rd_data_in[15:0]) :
+                $unsigned(dmem_rd_data_in[31:16]);
+*/
 wire [31:0] reg_data_out_load;
 assign reg_data_out_load = (funct3 == `FUNCT3_LB) ? {{24{load_b[7]}}, load_b} :
                         (funct3 == `FUNCT3_LH) ? {{16{load_hw[15]}}, load_hw} :
                         (funct3 == `FUNCT3_LW) ? load_w :
-                        (funct3 == `FUNCT3_LBU) ? {24'b0, load_bu} :
-                        {16'b0, load_hwu};
+                        (funct3 == `FUNCT3_LBU) ? {24'b0, load_b} :
+                        {16'b0, load_hw};
 
 // *** LUI / AUIPC instruction
 wire [31:0] reg_data_out_lui,  reg_data_out_auipc;
@@ -245,17 +261,22 @@ assign reg_wr_data_out = alu_instr ? reg_data_out_alu :
 
 // ************************************ DMEM WRITE *************************************
 // Store instructions
-wire [7:0] store_b;
-wire [15:0] store_hw;
-wire [31:0] store_w;
+wire [31:0] store_b, store_hw, store_w;
 
-assign store_b = (reg_rd_data2_in[7:0]);
-assign store_hw = (reg_rd_data2_in[15:0]);
+assign store_b = (dmem_wr_addr_out[1:0] == 2'b00) ? {dmem_rd_data_in[31:8], reg_rd_data2_in[7:0]} :
+                (dmem_wr_addr_out[1:0] == 2'b01) ? {dmem_rd_data_in[31:16], reg_rd_data2_in[7:0], dmem_rd_data_in[7:0]} :
+                (dmem_wr_addr_out[1:0] == 2'b10) ? {dmem_rd_data_in[31:24], reg_rd_data2_in[7:0], dmem_rd_data_in[15:0]} :
+                {reg_rd_data2_in[7:0], dmem_rd_data_in[23:0]};
+
+assign store_hw = (dmem_wr_addr_out[1:0] == 2'b00) ? {dmem_rd_data_in[31:16], reg_rd_data2_in[15:0]} :
+                    (dmem_wr_addr_out[1:0] == 2'b01) ? {dmem_rd_data_in[31:24], reg_rd_data2_in[15:0], dmem_rd_data_in[7:0]} :
+                    {reg_rd_data2_in[15:0], dmem_rd_data_in[15:0]};
+
 assign store_w = (reg_rd_data2_in[31:0]);
 
 assign dmem_wr_addr_out = reg_rd_data1_in + imm_S_extended;
-assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? {{dmem_rd_data_in[31:8]}, store_b} :
-                        (funct3 == `FUNCT3_SH) ? {{dmem_rd_data_in[31:16]}, store_hw} :
+assign dmem_wr_data_out = (funct3 == `FUNCT3_SB) ? store_b :
+                        (funct3 == `FUNCT3_SH) ? store_hw :
                         store_w;
 
 endmodule
