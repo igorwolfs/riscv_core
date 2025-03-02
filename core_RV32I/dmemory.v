@@ -3,26 +3,26 @@
 module dmemory #(parameter mem_content_path = "tests/my.hex",
                 parameter signature_path = "tests/my.sig")
 (
-    input clkin,
-    input nrst_in,
+    input CLK,
+    input NRST,
     // WRITE
-    input wr_en_in,
-    input [31:0] wr_addr_in,
-    input [31:0] wr_data_in,
+    input AWVALID,
+    input [31:0] AWADDR,
+    input [31:0] WDATA,
     // READ
-    input [31:0] rd_addr_in,
-    output [31:0] rd_data_out
+    input [31:0] ARADDR,
+    output [31:0] RDATA
 );
 
 reg [31:0] ROM[255:0];
-always @(posedge clkin)
+always @(posedge CLK)
 begin
-    if (wr_en_in)
+    if (AWVALID)
     begin
-        ROM[wr_addr_in] <= wr_data_in;
+        ROM[AWADDR] <= WDATA;
     end
 end
 
-assign rd_data_out = ROM[rd_addr_in];
+assign RDATA = ROM[ARADDR];
 
 endmodule

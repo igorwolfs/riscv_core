@@ -6,7 +6,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     ) (); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
     parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) + 1;
-    reg sysclk = 0, nrst_in = 1;
+    reg sysclk = 0, NRST = 1;
     integer sig_file, siglog_file;
 
     // **** External memory interface (when INTERNAL_MEMORY = 0) ****
@@ -34,7 +34,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     // *** MEMORY INTERFACING
     // Data Memory Interface
     wire [31:0] dmem_rd_addr, dmem_rd_data, dmem_wr_addr, dmem_wr_data;
-    wire dmem_wr_en;
+    wire DMEM_AWVALID;
 
     // Instruction Memory Interface
     wire [31:0] imem_addr, imem_data;
@@ -47,10 +47,10 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     // Memory write logic
     always @(posedge sysclk)
     begin
-        if (!nrst_in);
+        if (!NRST);
         else
             begin
-            if (dmem_wr_en)
+            if (DMEM_AWVALID)
                 begin
                 if (dmem_wr_addr == 32'hF0000004)
                 begin
@@ -73,7 +73,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     end
     always @(posedge sysclk)
     begin
-        if ((dmem_wr_en) && (ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] == 32'hDEADBEEF))
+        if ((DMEM_AWVALID) && (ext_memory[dmem_wr_addr[MEMMAX_ADDR_IDX:2]] == 32'hDEADBEEF))
         begin
             $fdisplay(siglog_file, "data_address: %h, signature: %h", dmem_wr_addr, dmem_wr_data);
             $fdisplay(siglog_file, "imem_address: %h, imem_data: %h", imem_addr, imem_data);
@@ -85,18 +85,18 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8)//4*1
     always #5 sysclk = ~sysclk;
 
     // **** CORE ****
-    core #(.INTERNAL_MEMORY(INTERNAL_MEMORY)) core_t (.sysclk(sysclk), .nrst_in(nrst_in),
+    core #(.INTERNAL_MEMORY(INTERNAL_MEMORY)) core_t (.CLK(sysclk), .NRST(NRST),
     // Data
-    .dmem_rd_addr(dmem_rd_addr), .dmem_rd_data(dmem_rd_data), .dmem_wr_addr(dmem_wr_addr),
-    .dmem_wr_data(dmem_wr_data), .dmem_wr_en(dmem_wr_en),
+    .DMEM_ARADDR(dmem_rd_addr), .DMEM_RDATA(dmem_rd_data), .DMEM_AWADDR(dmem_wr_addr),
+    .DMEM_WDATA(dmem_wr_data), .DMEM_AWVALID(DMEM_AWVALID),
     // Instructions
-    .imem_addr(imem_addr), .imem_data(imem_data));
+    .IMEM_ARADDR(imem_addr), .IMEM_RDATA(imem_data));
 
     initial
     begin
-        nrst_in = 0;
+        NRST = 0;
         #15;
-        nrst_in = 1;
+        NRST = 1;
         #100;
     end
 endmodule

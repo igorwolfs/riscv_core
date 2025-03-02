@@ -76,3 +76,18 @@
 `define FUNCT3_BGE 3'h5
 `define FUNCT3_BLTU 3'h6
 `define FUNCT3_BGEU 3'h7
+
+
+// ! **** ALU INSTRUCTIONS ****
+
+// funct3, funct7 is the code
+`define CODE_OR {`FUNCT3_OR, 7'b0}
+`define CODE_SUM {`FUNCT3_ADD, 7'b0}
+`define CODE_SUB {`FUNCT3_ADD, `FUNCT7_SUB}
+`define CODE_XOR {`FUNCT3_XOR, 7'b0}
+`define CODE_AND {`FUNCT3_AND, 7'b0}
+`define CODE_SLL {`FUNCT3_SLL, 7'b0}
+`define CODE_SRL {`FUNCT3_SR, 7'b0}
+`define CODE_SRA {`FUNCT3_SR, `FUNCT7_SRA}
+`define CODE_SLT {`FUNCT3_SLT, 7'b0}
+`define CODE_SLTU {`FUNCT3_SLTU, 7'b0}

@@ -2,18 +2,18 @@
 
 module single_ff #(parameter WIDTH=32, parameter NRST_VAL = 0)
 (
-    input clkin,
-    input nrst_in,
-    input [WIDTH-1:0] data_in,
-    output reg [WIDTH-1:0] data_out
+    input CLK,
+    input NRST,
+    input [WIDTH-1:0] D,
+    output reg [WIDTH-1:0] Q
 );
 
-always @(posedge clkin)
+always @(posedge CLK)
 begin
-    if (~nrst_in)
-        data_out <= NRST_VAL;
+    if (~NRST)
+        Q <= NRST_VAL;
     else
-        data_out <= data_in;
+        Q <= D;
 end
 
 endmodule

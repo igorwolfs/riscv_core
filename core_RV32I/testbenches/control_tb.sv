@@ -4,60 +4,60 @@ module control_tb();
 
 // -------------------- DUT I/O --------------------
 reg  [31:0] alu_arg_in;        // ALU input
-reg  [31:0] reg_rd_data1_in;   // Register read data 1
-reg  [31:0] reg_rd_data2_in;   // Register read data 2
+reg  [31:0] REG_RDATA1;   // Register read data 1
+reg  [31:0] REG_RDATA2;   // Register read data 2
 reg  [31:0] pc;                // Current PC
-reg  [31:0] dmem_rd_data_in;   // Data memory read data
-reg  [31:0] imem_in;           // Instruction memory data (the instruction)
+reg  [31:0] DMEM_RDATA;   // Data memory read data
+reg  [31:0] IMEM_RDATA;           // Instruction memory data (the instruction)
 
-wire [9:0] alu_cid_out;       // Some ALU control bit
-wire [31:0] alu_arg1_out;
-wire [31:0] alu_arg2_out;
+wire [9:0] ALU_O;       // Some ALU control bit
+wire [31:0] ALU_I1;
+wire [31:0] alu_I2;
 
-wire        reg_wr_en_out;
-wire [4:0]  reg_wr_idx_out;
-wire [4:0]  reg_rd_idx1_out;
-wire [4:0]  reg_rd_idx2_out;
-wire [31:0] reg_wr_data_out;
+wire        REG_AWVALID;
+wire [4:0]  REG_WDATA;
+wire [4:0]  REG_ARADDR1;
+wire [4:0]  REG_ARADDR2;
+wire [31:0] REG_WDATA;
 
 wire [31:0] pc_next;
 
-wire [31:0] dmem_rd_addr_out;
-wire        dmem_wr_en_out;
-wire [31:0] dmem_wr_data_out;
-wire [31:0] dmem_wr_addr_out;
+wire [31:0] DMEM_ARADDR;
+wire        DMEM_AWVALID;
+wire [31:0] DMEM_WDATA;
+wire [31:0] DMEM_AWADDR;
 
 
 // ---2----------------- DUT Instance --------------------
 control #() control_dut (
     // ALU
-    .alu_cid_out      (alu_cid_out),
-    .alu_arg1_out     (alu_arg1_out),
-    .alu_arg2_out     (alu_arg2_out),
+    .ALU_O      (ALU_O),
+    .ALU_I1     (ALU_I1),
+    .alu_I2     (alu_I2),
     .alu_arg_in       (alu_arg_in),
 
     // Register R/W
-    .reg_wr_en_out    (reg_wr_en_out),
-    .reg_wr_idx_out   (reg_wr_idx_out),
-    .reg_rd_idx1_out  (reg_rd_idx1_out),
-    .reg_rd_idx2_out  (reg_rd_idx2_out),
-    .reg_wr_data_out  (reg_wr_data_out),
-    .reg_rd_data1_in  (reg_rd_data1_in),
-    .reg_rd_data2_in  (reg_rd_data2_in),
+    .REG_AWVALID    (REG_AWVALID),
+    .REG_WDATA   (REG_WDATA),
+    .REG_ARADDR1  (REG_ARADDR1),
+    .REG_ARADDR2  (REG_ARADDR2),
+    .REG_WDATA  (REG_WDATA),
+    .REG_RDATA1  (REG_RDATA1),
+    .REG_RDATA2  (REG_RDATA2),
 
     // PC
     .pc               (pc),
     .pc_next          (pc_next),
 
     // Data Memory
-    .dmem_rd_data_in  (dmem_rd_data_in),
-    .dmem_rd_addr_out (dmem_rd_addr_out),
-    .dmem_wr_en_out   (dmem_wr_en_out),
-    .dmem_wr_data_out (dmem_wr_data_out),
-    .dmem_wr_addr_out (dmem_wr_addr_out),
+    .DMEM_RDATA  (DMEM_RDATA),
+    .DMEM_ARADDR (DMEM_ARADDR),
+    .DMEM_AWVALID   (DMEM_AWVALID),
+    .DMEM_WDATA (DMEM_WDATA),
+    .DMEM_AWADDR (DMEM_AWADDR),
 
     // Instruction Memory
-    .imem_in          (imem_in)
+    .IMEM_RDATA          (IMEM_RDATA)
 );
 
 // -------------------- Test Stimulus --------------------
@@ -67,11 +67,11 @@ initial begin
 
     // Initialize signals
     alu_arg_in       = 32'hDEAD_BEEF;
-    reg_rd_data1_in  = 32'h0000_0000;
-    reg_rd_data2_in  = 32'h0000_0000;
+    REG_RDATA1  = 32'h0000_0000;
+    REG_RDATA2  = 32'h0000_0000;
     pc               = 32'h0000_0100;
-    dmem_rd_data_in  = 32'h0000_0000;
-    imem_in          = 32'h0000_0000;
+    DMEM_RDATA  = 32'h0000_0000;
+    IMEM_RDATA          = 32'h0000_0000;
 
     // Let signals settle
     #10;
@@ -83,19 +83,19 @@ initial begin
     // 0000000  00010 00001 000     00011 0110011  => 0x00208133
     // (Add x3 <- x1 + x2)
     // 
-    // Let’s say reg_rd_data1_in=10, reg_rd_data2_in=20
+    // Let’s say REG_RDATA1=10, REG_RDATA2=20
     //
-    imem_in         = 32'b0000000_00010_00001_000_00011_0110011; // 0x00208133
-    reg_rd_data1_in = 32'd10;
-    reg_rd_data2_in = 32'd20;
+    IMEM_RDATA         = 32'b0000000_00010_00001_000_00011_0110011; // 0x00208133
+    REG_RDATA1 = 32'd10;
+    REG_RDATA2 = 32'd20;
     pc              = 32'h0000_0100;
     #10;
     $display("[R-type ADD] time=%t", $realtime);
-    $display("  Instr   = 0x%08h", imem_in);
-    $display("  reg_wr_en_out   = %b",    reg_wr_en_out);
-    $display("  reg_wr_idx_out  = %d",    reg_wr_idx_out);
-    $display("  alu_arg1_out    = %d",    alu_arg1_out);
-    $display("  alu_arg2_out    = %d",    alu_arg2_out);
+    $display("  Instr   = 0x%08h", IMEM_RDATA);
+    $display("  REG_AWVALID   = %b",    REG_AWVALID);
+    $display("  REG_WDATA  = %d",    REG_WDATA);
+    $display("  ALU_I1    = %d",    ALU_I1);
+    $display("  alu_I2    = %d",    alu_I2);
     $display("  pc_next         = 0x%08h", pc_next);
 
     // ------------------------------------------
@@ -104,17 +104,17 @@ initial begin
     // imm[11:0] rs1 funct3 rd opcode (I-type)
     // 00010000  00001 000   00011 0010011 => 0x01008193
     // (Addi x3 = x1 + 0x10)
-    imem_in         = 32'h01008193;
-    reg_rd_data1_in = 32'd100;  // Suppose x1=100
-    reg_rd_data2_in = 32'd999;  // Should be ignored for ADDI
+    IMEM_RDATA         = 32'h01008193;
+    REG_RDATA1 = 32'd100;  // Suppose x1=100
+    REG_RDATA2 = 32'd999;  // Should be ignored for ADDI
     pc              = 32'h0000_0104;
     #10;
     $display("[I-type ADDI] time=%t", $realtime);
-    $display("  Instr   = 0x%08h", imem_in);
-    $display("  reg_wr_en_out   = %b",    reg_wr_en_out);
-    $display("  reg_wr_idx_out  = %d",    reg_wr_idx_out);
-    $display("  alu_arg1_out    = %d",    alu_arg1_out);
-    $display("  alu_arg2_out    = %d",    alu_arg2_out);
+    $display("  Instr   = 0x%08h", IMEM_RDATA);
+    $display("  REG_AWVALID   = %b",    REG_AWVALID);
+    $display("  REG_WDATA  = %d",    REG_WDATA);
+    $display("  ALU_I1    = %d",    ALU_I1);
+    $display("  alu_I2    = %d",    alu_I2);
     $display("  pc_next         = 0x%08h", pc_next);
 
     // ------------------------------------------
@@ -123,13 +123,13 @@ initial begin
     // imm[12|10:5] rs2  rs1  funct3 imm[4:1|11] opcode  => typical B-type
     // Suppose we do: beq x1, x2, offset=8
     // offset=8 in B-type has a certain bit structure, but let's do a rough test
-    imem_in         = 32'b000000_00010_00001_000_00000_1100011; // just an example
-    reg_rd_data1_in = 32'd50;
-    reg_rd_data2_in = 32'd50;  // Should be equal => branch taken
+    IMEM_RDATA         = 32'b000000_00010_00001_000_00000_1100011; // just an example
+    REG_RDATA1 = 32'd50;
+    REG_RDATA2 = 32'd50;  // Should be equal => branch taken
     pc              = 32'h0000_0108;
     #10;
     $display("[B-type BEQ] time=%t", $realtime);
-    $display("  Instr   = 0x%08h", imem_in);
+    $display("  Instr   = 0x%08h", IMEM_RDATA);
     $display("  pc_next         = 0x%08h (branch taken?)", pc_next);
 
     // ------------------------------------------

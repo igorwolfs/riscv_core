@@ -1,5 +1,6 @@
 `timescale 1ns/10ps
 
+`include "config.vh"
 /**
 
 
@@ -9,36 +10,34 @@ The program counter needs to be updated on every clock cycle.
 */
 
 
-module core #(
-              // INTERNAL MEMORY TO INTERFACE WITH
-              parameter INTERNAL_MEMORY = 1'b1)
+module core #(parameter INTERNAL_MEMORY=1'b1)
   (
     // SYSTEM
-    input  sysclk, nrst_in,
+    input  CLK, NRST,
 
     // External memory interface (when INTERNAL_MEMORY = 0)
     // Data Memory Interface
-    output wire [31:0] dmem_rd_addr,
-    input  wire [31:0] dmem_rd_data,
-    output wire [31:0] dmem_wr_addr,
-    output wire [31:0] dmem_wr_data,
-    output wire        dmem_wr_en,
-    
+    output wire [31:0] DMEM_ARADDR,
+    input  wire [31:0] DMEM_RDATA,
+    output wire [31:0] DMEM_AWADDR,
+    output wire [31:0] DMEM_WDATA,
+    output wire        DMEM_AWVALID,
+
     // Instruction Memory Interface
-    output wire [31:0] imem_addr,
-    input  wire [31:0] imem_data
+    output wire [31:0] IMEM_ARADDR,
+    input  wire [31:0] IMEM_RDATA
   );
 
   // Internal signals
-  wire [31:0] internal_dmem_rd_data;
-  wire [31:0] internal_imem_data;
+  wire [31:0] internal_dmem_rdata;
+  wire [31:0] internal_imem_rdata;
 
   // ALU COMMANDS
-  wire [31:0] alu_arg1_in, alu_arg2_in, alu_arg_out;
+  wire [31:0] alu_i1, alu_i2, alu_o;
   wire [9:0] alu_cid;
 
   // REGISTER READ / WRITE
-  wire reg_wr_en;
+  wire reg_awvalid;
   wire [4:0] reg_wr_idx, reg_rd_idx1, reg_rd_idx2;
   wire [31:0] reg_wr_data, reg_rd_data1, reg_rd_data2;
 
@@ -46,67 +45,64 @@ module core #(
   wire [31:0] pc, pc_next;
 
   // Memory multiplexing based on INTERNAL_MEMORY parameter
-  wire [31:0] active_dmem_rd_data = INTERNAL_MEMORY ? internal_dmem_rd_data : dmem_rd_data;
-  wire [31:0] active_imem_data = INTERNAL_MEMORY ? internal_imem_data : imem_data;
-
-  // INSTRUCTION MEMORY
-  wire [31:0] imem_instr;
+  wire [31:0] active_dmem_rdata = INTERNAL_MEMORY ? internal_dmem_rdata : DMEM_RDATA;
+  wire [31:0] active_imem_rdata = INTERNAL_MEMORY ? internal_imem_rdata : IMEM_RDATA;
 
   // ************ UNITS *****************
 
   // * ALU UNIT
-  alu #() alu_t (.alu_cid_in(alu_cid), .alu_arg1_in(alu_arg1_in),
-  .alu_arg2_in(alu_arg2_in), .alu_arg_out(alu_arg_out));
+  alu #() alu_t (.ALU_CID(alu_cid), .ALU_I1(alu_i1),
+  .ALU_I2(alu_i2), .ALU_O(alu_o));
 
   // * CONTROL UNIT
   control #() control_t (
     // ALU CONTROL
-    .alu_cid_out(alu_cid), .alu_arg1_out(alu_arg1_in), .alu_arg2_out(alu_arg2_in), .alu_arg_in(alu_arg_out),
+    .ALU_CID(alu_cid), .ALU_I1(alu_i1), .ALU_I2(alu_i2), .ALU_O(alu_o),
     // REGISTER READ / WRITE
-    .reg_wr_en_out(reg_wr_en), .reg_wr_data_out(reg_wr_data),  .reg_wr_idx_out(reg_wr_idx),
-    .reg_rd_idx1_out(reg_rd_idx1), .reg_rd_idx2_out (reg_rd_idx2), .reg_rd_data1_in(reg_rd_data1), .reg_rd_data2_in(reg_rd_data2),
+    .REG_AWVALID(reg_awvalid), .REG_WDATA(reg_wr_data),  .REG_AWADDR(reg_wr_idx),
+    .REG_ARADDR1(reg_rd_idx1), .REG_ARADDR2 (reg_rd_idx2), .REG_RDATA1(reg_rd_data1), .REG_RDATA2(reg_rd_data2),
     // PROGRAM COUNTER
-    .pc(pc), .pc_next(pc_next),
+    .PC(pc), .PC_N(pc_next),
     // DATA MEMORY
-    .dmem_rd_data_in(active_dmem_rd_data), .dmem_rd_addr_out(dmem_rd_addr),
-    .dmem_wr_en_out(dmem_wr_en), .dmem_wr_data_out(dmem_wr_data), .dmem_wr_addr_out(dmem_wr_addr),
+    .DMEM_RDATA(active_dmem_rdata), .DMEM_ARADDR(DMEM_ARADDR),
+    .DMEM_AWVALID(DMEM_AWVALID), .DMEM_WDATA(DMEM_WDATA), .DMEM_AWADDR(DMEM_AWADDR),
     // INSTRUCTION MEMORY
-    .imem_in(active_imem_data)
+    .IMEM_RDATA(active_imem_rdata)
     );
 
 
-    // Generate block for internal/external memory selection
-    generate
-      if (INTERNAL_MEMORY) begin : internal_memory
-          // Internal Data Memory
-          dmemory #() dmemory_t (
-              .clkin(sysclk),
-              .nrst_in(nrst_in),
-              .rd_data_out(internal_dmem_rd_data),
-              .rd_addr_in(dmem_rd_addr),
-              .wr_en_in(dmem_wr_en),
-              .wr_data_in(dmem_wr_data),
-              .wr_addr_in(dmem_wr_addr)
-          );
+  // Generate block for internal/external memory selection
+  generate
+    if (INTERNAL_MEMORY) begin : internal_memory
+    // Internal Data Memory
+    dmemory #() dmemory_t (
+        .CLK(CLK),
+        .NRST(NRST),
+        .RDATA(internal_dmem_rdata),
+        .ARADDR(DMEM_ARADDR),
+        .AWVALID(DMEM_AWVALID),
+        .WDATA(DMEM_WDATA),
+        .AWADDR(DMEM_AWADDR)
+    );
 
-          // Internal Instruction Memory
-          imemory #() imemory_t (
-              .clkin(sysclk),
-              .rd_addr_in(pc),
-              .rd_data_out(internal_imem_data)
-          );
-      end
+    // Internal Instruction Memory
+    imemory #() imemory_t (
+        .CLK(CLK),
+        .ARADDR(pc),
+        .RDATA(internal_imem_rdata)
+    );
+    end
   endgenerate
 
-  // Program counter
+  // * PC
   single_ff #(.WIDTH(32), .NRST_VAL(0)) pc_t (
-    .clkin(sysclk), .nrst_in(nrst_in), .data_in(pc_next), .data_out(pc));
+    .CLK(CLK), .NRST(NRST), .D(pc_next), .Q(pc));
 
-  assign imem_addr = pc;
+  assign IMEM_ARADDR = pc;
 
   // * REGISTERS
-  registers #() registers_t (.clkin(sysclk), .nrst_in(nrst_in), // Sys
-  .wr_en(reg_wr_en), .wr_data_in(reg_wr_data), .wr_idx_in(reg_wr_idx), // Write
-  .rd_idx1_in(reg_rd_idx1), .rd_idx2_in(reg_rd_idx2), .rd_data1_out(reg_rd_data1), .rd_data2_out(reg_rd_data2)); // Read
+  registers #() registers_t (.CLK(CLK), .NRST(NRST), // Sys
+  .AWVALID(reg_awvalid), .WDATA(reg_wr_data), .AWID(reg_wr_idx), // Write
+  .ARID1(reg_rd_idx1), .ARID2(reg_rd_idx2), .RDATA1(reg_rd_data1), .RDATA2(reg_rd_data2)); // Read
 
 endmodule

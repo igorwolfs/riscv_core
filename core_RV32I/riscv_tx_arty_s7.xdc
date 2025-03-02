@@ -11,7 +11,7 @@ set_property -dict {PACKAGE_PIN R2 IOSTANDARD SSTL135} [get_ports sysclk];
 create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} -add [get_ports sysclk];
 
 # BUTTON 0: HIGH (away from edge), LOW (towards edge)
-set_property -dict { PACKAGE_PIN H14   IOSTANDARD LVCMOS33 } [get_ports { nrst_in }]; #IO_L20N_T3_A19_15 Sch=sw[0]
+set_property -dict { PACKAGE_PIN H14   IOSTANDARD LVCMOS33 } [get_ports { NRST }]; #IO_L20N_T3_A19_15 Sch=sw[0]
 set_property -dict { PACKAGE_PIN E18   IOSTANDARD LVCMOS33 } [get_ports { nrst_led_out }]; #IO_L16N_T2_A27_15 Sch=led[2]
 
 ## BUTTONS
