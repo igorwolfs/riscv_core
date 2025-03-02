@@ -1,0 +1,3 @@
+[submodule "vhdl_libs"]
+	path = vhdl_libs
+	url = git@github.com:igorwolfs/vhdl_libs.git
