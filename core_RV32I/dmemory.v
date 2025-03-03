@@ -1,7 +1,6 @@
 `timescale 1ns/10ps
 
-module dmemory #(parameter mem_content_path = "tests/my.hex",
-                parameter signature_path = "tests/my.sig")
+module dmemory #(parameter INT_DMEM_SIZE = 1024)
 (
     input CLK,
     input NRST,
@@ -14,7 +13,7 @@ module dmemory #(parameter mem_content_path = "tests/my.hex",
     output [31:0] RDATA
 );
 
-reg [31:0] ROM[255:0];
+reg [31:0] ROM[INT_DMEM_SIZE-1:0];
 always @(posedge CLK)
 begin
     if (AWVALID)

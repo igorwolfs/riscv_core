@@ -10,7 +10,7 @@ The program counter needs to be updated on every clock cycle.
 */
 
 
-module core #(parameter INTERNAL_MEMORY=1'b1)
+module core #()
   (
     // SYSTEM
     input  CLK, NRST,
@@ -44,9 +44,7 @@ module core #(parameter INTERNAL_MEMORY=1'b1)
   // PROGRAM COUNTER
   wire [31:0] pc, pc_next;
 
-  // Memory multiplexing based on INTERNAL_MEMORY parameter
-  wire [31:0] active_dmem_rdata = INTERNAL_MEMORY ? internal_dmem_rdata : DMEM_RDATA;
-  wire [31:0] active_imem_rdata = INTERNAL_MEMORY ? internal_imem_rdata : IMEM_RDATA;
+  assign IMEM_ARADDR = pc;
 
   // ************ UNITS *****************
 
@@ -64,41 +62,16 @@ module core #(parameter INTERNAL_MEMORY=1'b1)
     // PROGRAM COUNTER
     .PC(pc), .PC_N(pc_next),
     // DATA MEMORY
-    .DMEM_RDATA(active_dmem_rdata), .DMEM_ARADDR(DMEM_ARADDR),
+    .DMEM_RDATA(DMEM_ARADDR), .DMEM_ARADDR(DMEM_ARADDR),
     .DMEM_AWVALID(DMEM_AWVALID), .DMEM_WDATA(DMEM_WDATA), .DMEM_AWADDR(DMEM_AWADDR),
     // INSTRUCTION MEMORY
-    .IMEM_RDATA(active_imem_rdata)
+    .IMEM_RDATA(IMEM_RDATA)
     );
-
-
-  // Generate block for internal/external memory selection
-  generate
-    if (INTERNAL_MEMORY) begin : internal_memory
-    // Internal Data Memory
-    dmemory #() dmemory_t (
-        .CLK(CLK),
-        .NRST(NRST),
-        .RDATA(internal_dmem_rdata),
-        .ARADDR(DMEM_ARADDR),
-        .AWVALID(DMEM_AWVALID),
-        .WDATA(DMEM_WDATA),
-        .AWADDR(DMEM_AWADDR)
-    );
-
-    // Internal Instruction Memory
-    imemory #() imemory_t (
-        .CLK(CLK),
-        .ARADDR(pc),
-        .RDATA(internal_imem_rdata)
-    );
-    end
-  endgenerate
 
   // * PC
   single_ff #(.WIDTH(32), .NRST_VAL(0)) pc_t (
     .CLK(CLK), .NRST(NRST), .D(pc_next), .Q(pc));
 
-  assign IMEM_ARADDR = pc;
 
   // * REGISTERS
   registers #() registers_t (.CLK(CLK), .NRST(NRST), // Sys

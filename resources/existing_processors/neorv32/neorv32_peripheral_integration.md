@@ -29,3 +29,7 @@ Trigger interrupts on empty / half / full .. various conditions set in registers
 defined in neorv32_package.vhd
 
 Manages read / writes of registers.
+- bus_req_i
+- bus_rsp_o
+
+The bus_rsp_o

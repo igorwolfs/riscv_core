@@ -15,6 +15,7 @@ module control (
     output [4:0] REG_ARADDR1,
     output [4:0] REG_ARADDR2,
     output [31:0] REG_WDATA,
+
     // Should be read by the control unit and redirected depending on the instruction
     input [31:0] REG_RDATA1,
     input [31:0] REG_RDATA2,
