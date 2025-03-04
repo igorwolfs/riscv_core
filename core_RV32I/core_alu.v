@@ -8,7 +8,7 @@ An ALU "normally" doesn't require any
 Since it is supposed to be purely combinatorial.
 */
 
-module alu (
+module core_alu (
     input [9:0] ALU_CID,
     input [31:0] ALU_I1,
     input [31:0] ALU_I2,

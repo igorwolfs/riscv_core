@@ -2,7 +2,7 @@
 `include "define.vh"
 
 // FOR NOW: no clock / reset needed since this "should" be purely combinatorial
-module control (
+module core_control (
     // * ALU COMMANDS
     output [9:0] ALU_CID,
     output [31:0] ALU_I1,

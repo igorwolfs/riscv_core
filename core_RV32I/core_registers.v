@@ -5,7 +5,7 @@
 - Allow resetting registers on nrst=low
 */
 
-module registers (
+module core_registers (
     input CLK, NRST,
     input AWVALID,
     input [31:0] WDATA,
