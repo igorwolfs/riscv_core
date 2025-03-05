@@ -60,3 +60,10 @@ Pipelining needs to be the basis of all this
 	a. If ALU, perform combinatorially + move to NEXT_INSTR
 	b. If memory instruction -> perform memory fetch, stall, once done -> move to NEXT_INSTR
 	
+### Global control module
+- Make sure to add the global control moduel
+- Add all signals
+- Try connecting everything
+- Add the jump control to it as well
+
+### Jump control

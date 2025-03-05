@@ -53,6 +53,9 @@ module core_top #(
     output                      IMEM_AXI_RREADY
   );
 
+  // Internal signals
+  wire [31:0] internal_dmem_rdata;
+  wire [31:0] internal_imem_rdata;
 
   // ALU COMMANDS
   wire [31:0] alu_i1, alu_i2, alu_o;
@@ -60,29 +63,21 @@ module core_top #(
 
   // REGISTER READ / WRITE
   wire reg_awvalid;
-  wire [4:0] reg_waddr, reg_raddr1, reg_raddr2;
-  wire [31:0] reg_wdata, reg_rdata1, reg_rdata2;
+  wire [4:0] reg_wr_idx, reg_rd_idx1, reg_rd_idx2;
+  wire [31:0] reg_wr_data, reg_rd_data1, reg_rd_data2;
 
-  // INSTRUCTION FETCH
-  wire c_instr_fetch;     // On high -> Instruction fetch 
-  wire [31:0] instruction;
-  wire c_pc_update;       // On high -> PC update
-  wire [31:0] jump_incr;  // PC update number
-  wire [31:0] pc;
+  // PROGRAM COUNTER
+  wire [31:0] pc, pc_next;
 
-  // DATA MEMORY
-  wire c_doload, c_doloadbs,c_doloadhws;
-  wire c_dostore;
-  wire [31:0] addr, wdata, rdata;
-  wire [3:0] strb;
+  assign IMEM_ARADDR = pc;
 
   // ************ UNITS *****************
 
-  // *** ALU UNIT ***
+  // * ALU UNIT
   core_alu #() alu_t (.ALU_CID(alu_cid), .ALU_I1(alu_i1),
   .ALU_I2(alu_i2), .ALU_O(alu_o));
 
-  // *** CONTROL UNIT ***
+  // * CONTROL UNIT
   core_control #() control_t (
     // ALU CONTROL
     .ALU_CID(alu_cid), .ALU_I1(alu_i1), .ALU_I2(alu_i2), .ALU_O(alu_o),
@@ -98,67 +93,20 @@ module core_top #(
     .IMEM_RDATA(IMEM_RDATA)
     );
 
-  // *** INSTRUCTION FETCH (AXI MASTER) ***
-    core_ifetch #(
-        .AXI_AWIDTH(AXI_AWIDTH),
-        .AXI_DWIDTH(AXI_DWIDTH)
-    ) core_ifetch_inst (
-        .CLK(CLK),
-        .NRST(NRST),
-        .AXI_ARADDR(IMEM_AXI_ARADDR), .AXI_ARVALID(IMEM_AXI_ARVALID),
-        .AXI_ARREADY(IMEM_AXI_ARREADY), .AXI_RDATA(IMEM_AXI_RDATA),
-        .AXI_RRESP(IMEM_AXI_RRESP), .AXI_RVALID(IMEM_AXI_RVALID),
-        .AXI_RREADY(IMEM_AXI_RREADY), // Goes high when fetch succeeded
+  // * PC
+  always @(posedge CLK)
+  begin
+      if (~NRST)
+          pc <= 32'b0;
+      else
+          // CHECK FOR STALLING CONDITIONS BEFORE INCREMENTING PC
+          pc <= pc_next;
+  end
 
-        .C_INSTR_FETCH(c_instr_fetch),
-        .INSTRUCTION(instruction),
-
-        .C_PC_UPDATE(c_pc_update),
-        .C_ISJUMP(c_isjump),
-        .JUMP_INCR(jump_incr),
-        .PC(pc)
-    );
-
-  // *** MEMORY CONTROLLER (AXI MASTER) ***
-    core_mem #(
-        .AXI_AWIDTH(AXI_AWIDTH),
-        .AXI_DWIDTH(AXI_DWIDTH)
-    ) core_imem_inst (
-        .CLK(CLK),
-        .NRST(NRST),
-
-        .AXI_AWADDR(HOST_AXI_AWADDR),
-        .AXI_AWVALID(HOST_AXI_AWVALID),
-        .AXI_AWREADY(HOST_AXI_AWREADY),
-        .AXI_WDATA(HOST_AXI_WDATA),
-        .AXI_WSTRB(HOST_AXI_WSTRB),
-        .AXI_WVALID(HOST_AXI_WVALID),
-        .AXI_WREADY(HOST_AXI_WREADY),
-        .AXI_BRESP(HOST_AXI_BRESP),
-        .AXI_BVALID(HOST_AXI_BVALID),
-        .AXI_BREADY(HOST_AXI_BREADY),
-        .AXI_ARADDR(HOST_AXI_ARADDR),
-        .AXI_ARVALID(HOST_AXI_ARVALID),
-        .AXI_ARREADY(HOST_AXI_ARREADY),
-        .AXI_RDATA(HOST_AXI_RDATA),
-        .AXI_RRESP(HOST_AXI_RRESP),
-        .AXI_RVALID(HOST_AXI_RVALID),
-        .AXI_RREADY(HOST_AXI_RREADY),
-
-        .C_DOLOAD(c_doload),
-        .DOLOADBS(doloadbs),
-        .DOLOADHWS(doloadhws),
-        .C_DOSTORE(c_dostore),
-        .ADDR(addr),
-        .WDATA(wdata),
-        .RDATA(rdata),
-        .STRB(strb)
-    );
-
-  // *** REGISTERS ***
+  // * REGISTERS
   core_registers #() registers_t (.CLK(CLK), .NRST(NRST), // Sys
-  .AWVALID(reg_awvalid), .WDATA(reg_wdata), .AWADDR(reg_awaddr), // Write
-  .ARADDR1(reg_araddr1), .ARADDR2(reg_araddr2), .RDATA1(reg_rdata1), .RDATA2(reg_rdata2)); // Read
+  .AWVALID(reg_awvalid), .WDATA(reg_wr_data), .AWID(reg_wr_idx), // Write
+  .ARID1(reg_rd_idx1), .ARID2(reg_rd_idx2), .RDATA1(reg_rd_data1), .RDATA2(reg_rd_data2)); // Read
 
 endmodule
 

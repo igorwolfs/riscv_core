@@ -79,7 +79,7 @@ end
 // WRITE RESPONSE CHANNEL
 always @(posedge AXI_ACLK)
 begin
-    if (AXI_ARESETN)
+    if (!AXI_ARESETN)
         AXI_BVALID <= 1'b0;
     if (!AXI_BVALID & AXI_WREADY & AXI_WVALID & AXI_AWREADY & AXI_AWVALID)
     begin
@@ -93,7 +93,7 @@ end
 // READ ADDRESS CHANNEL
 always @(posedge AXI_ACLK)
 begin
-    if (AXI_ARESETN)
+    if (!AXI_ARESETN)
         AXI_ARREADY <= 1'b0;
     else
         begin
@@ -106,9 +106,11 @@ end
 
 always @(posedge AXI_ACLK)
 begin
-    if (~nrst_in)
+    if (!AXI_ARESETN)
+    begin
         AXI_RDATA <= 32'hDEADBEEF;
         AXI_RVALID <= 1'b0;
+    end
     else
     begin
         if (!AXI_RVALID & AXI_RREADY & AXI_ARREADY)
@@ -119,6 +121,7 @@ begin
         end // Assume that AXI_RREADY is high for one clock-cycle longer than AXI_RVALID
         else if (AXI_RVALID & AXI_RREADY)
             AXI_RVALID <= 1'b0;
+        else;
     end
 end
 

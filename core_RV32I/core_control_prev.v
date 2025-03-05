@@ -148,29 +148,6 @@ assign pc_next_default = PC + 4;
 // * Branching (conditional jump)
 assign pc_next_br = PC + imm_B_extended;
 
-// * Branching conditions
-wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond;
-
-// Make sure to check additional branch condition
-assign br_eq = (REG_RDATA1 == REG_RDATA2);
-assign br_ne = !br_eq;
-
-// Numbers in verilog are signed by default
-assign br_blt = ($signed(REG_RDATA1) < $signed(REG_RDATA2));
-assign br_bge = !br_blt;
-
-// Unsigned
-assign br_bltu = ($unsigned(REG_RDATA1) < $unsigned(REG_RDATA2));
-assign br_bgeu = !br_bltu;
-
-// * Check if the branching condition is fulfilled
-assign br_cond = ((`FUNCT3_BEQ == funct3) && (br_eq))
-                    || ((`FUNCT3_BNE == funct3) && (br_ne))
-                    || ((`FUNCT3_BLT == funct3) && (br_blt))
-                    || ((`FUNCT3_BGE == funct3) && (br_bge))
-                    || ((`FUNCT3_BLTU == funct3) && (br_bltu))
-                    || ((`FUNCT3_BGEU == funct3) && (br_bgeu));
-
 // * Jump (unconditional jump)
 // JAL
 assign pc_next_jal = PC + imm_J_extended;
