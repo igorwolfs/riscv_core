@@ -16,8 +16,7 @@ module core_cbranch (
 );
 
 // * Branching conditions
-wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond;
-
+wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond, take_branch;
 // Make sure to check additional branch condition
 assign br_eq = (REG_RDATA1 == REG_RDATA2);
 assign br_ne = !br_eq;
@@ -37,6 +36,7 @@ assign take_branch = ((`FUNCT3_BEQ == FUNCT3) && (br_eq))
                     || ((`FUNCT3_BGE == FUNCT3) && (br_bge))
                     || ((`FUNCT3_BLTU == FUNCT3) && (br_bltu))
                     || ((`FUNCT3_BGEU == FUNCT3) && (br_bgeu));
+
 always @(posedge CLK)
 begin
 	if (~NRST)

@@ -29,7 +29,7 @@ module core_ifetch #(
 	input [31:0]				PC_NEXT,
 
 	// *** PROGRAM COUNTER ***
-	output reg 					PC
+	output reg [31:0]			PC
 );
 
 // PC UPDATES ON PC_UPDATE == 1
@@ -40,13 +40,13 @@ begin
 	else
 	// ONLY INCREMENT IF FETCHING ISN'T IN PROGRESS => PC_INCR should be controlled by control circuitry, triggered at the end of the pipeline cycle
 	begin
-		if (PC_UPDATE)
+		if (C_PC_UPDATE)
 			PC <= PC_NEXT;
 		else;
 	end
 end
 
-assign AXI_ARRADDR = PC;
+assign AXI_ARADDR = PC;
 
 // ==========================
 // AXI READ ADDRESS CHANNEL
@@ -73,7 +73,7 @@ always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
-		C_FETCH_DONE <= 1'b0;
+		INSTRUCTION <= 32'hDEADBEEF;
 		AXI_RREADY <= 0;
 	end
 	else if (C_INSTR_FETCH)
@@ -82,17 +82,16 @@ begin
 			begin
 				AXI_RREADY <= 1;
 				INSTRUCTION <= AXI_RDATA;
-				C_FETCH_DONE <= 1'b1;
 			end
 			else
 			begin
-				C_FETCH_DONE <= 1'b0;
+				INSTRUCTION <= 32'hDEADBEEF;
 				AXI_RREADY <= 0;
 			end
 		end
 	else
 		begin
-			C_FETCH_DONE <= 1'b0;
+			INSTRUCTION <= 32'hDEADBEEF;
 			AXI_RREADY <= 0;
 		end
 end

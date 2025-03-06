@@ -14,16 +14,16 @@ module core_calu (
 	// Create the immediate based on ALU logic
 	assign ALU_IMM 	  = (FUNCT3 != `FUNCT3_SR) ? IMM : ({27'b0, IMM[4:0]});
 
-	assign OPCODE_ALU = ((FUNCT3 == `FUNCT3_ADD) & (!FUNCT7)) ? ALU_CODE_SUM :
-						((FUNCT3 == `FUNCT3_ADD) & (FUNCT7)) ? ALU_CODE_SUB :
-						(FUNCT3 == `FUNCT3_XOR) ? ALU_CODE_XOR :
-						(FUNCT3 == `FUNCT3_OR) ? ALU_CODE_OR :
-						(FUNCT3 == `FUNCT3_AND) ? ALU_CODE_AND :
-						 (FUNCT3 == `FUNCT3_SLL) ? ALU_CODE_SLL :
-						 ((FUNCT3 == `FUNCT3_SR) & (!FUNCT7)) ? ALU_CODE_SRL :
-						 ((FUNCT3 == `FUNCT3_SR) & (FUNCT7)) ? ALU_CODE_SRA :
-						 (FUNCT3 == `FUNCT3_SLT) ? ALU_CODE_SLT :
-						 (FUNCT3 == `FUNCT3_SLTU) ? ALU_CODE_SLTU :
+	assign OPCODE_ALU = ((FUNCT3 == `FUNCT3_ADD) & (!FUNCT7[5])) ? `ALU_CODE_ADD :
+						((FUNCT3 == `FUNCT3_ADD) & (FUNCT7[5])) ? `ALU_CODE_SUB :
+						(FUNCT3 == `FUNCT3_XOR) ? `ALU_CODE_XOR :
+						(FUNCT3 == `FUNCT3_OR) ? `ALU_CODE_OR :
+						(FUNCT3 == `FUNCT3_AND) ? `ALU_CODE_AND :
+						 (FUNCT3 == `FUNCT3_SLL) ? `ALU_CODE_SLL :
+						 ((FUNCT3 == `FUNCT3_SR) & (!FUNCT7[5])) ? `ALU_CODE_SRL :
+						 ((FUNCT3 == `FUNCT3_SR) & (FUNCT7[5])) ? `ALU_CODE_SRA :
+						 (FUNCT3 == `FUNCT3_SLT) ? `ALU_CODE_SLT :
+						 (FUNCT3 == `FUNCT3_SLTU) ? `ALU_CODE_SLTU :
 						`ALU_CODE_INVALID;
 endmodule
 

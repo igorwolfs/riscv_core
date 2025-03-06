@@ -1,6 +1,7 @@
 `timescale 1ns/10ps
 
-module dmemory #(parameter INT_DMEM_SIZE = 1024,
+module dmemory #(parameter RISCOF_TEST_MODE = 0,
+            parameter INT_DMEM_SIZE = 1024,
             parameter AXI_AWIDTH = 4,
             parameter AXI_DWIDTH = 32)
 (
@@ -28,12 +29,20 @@ module dmemory #(parameter INT_DMEM_SIZE = 1024,
     output reg [AXI_DWIDTH-1:0] AXI_RDATA,
     output reg [1:0]            AXI_RRESP,
     output reg                  AXI_RVALID,
-    input                       AXI_RREADY
+    input                       AXI_RREADY,
 
+    // RISCOF
+    input      [31:0]           DMEM_RDATA,
+    input      [31:0]           DMEM_WDATA_READ,
+    output reg [31:0]           DMEM_WDATA
 );
 
 reg [31:0] ram[INT_DMEM_SIZE-1:0];
+
+// ================================
 // WRITE ADDRESS CHANNEL
+// ================================
+
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
@@ -47,7 +56,11 @@ begin
     end
 end
 
+
+// ================================
 // WRITE DATA CHANNEL
+// ================================
+
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
@@ -61,22 +74,49 @@ begin
     end
 end
 
+// ================================
 // WRITE READY CHANNEL
+// ================================
 
 always @(posedge AXI_ACLK)
 begin
     // If both the write and the address write channel are valid => Write to memory
     if (AXI_WREADY & AXI_WVALID & AXI_AWREADY & AXI_AWVALID)
     begin
-        if (AXI_WSTRB[0]) ram[AXI_AWADDR][7:0] <= AXI_WDATA[7:0];
-        if (AXI_WSTRB[1]) ram[AXI_AWADDR][15:8] <= AXI_WDATA[15:8];
-        if (AXI_WSTRB[2]) ram[AXI_AWADDR][23:16] <= AXI_WDATA[23:16];
-        if (AXI_WSTRB[3]) ram[AXI_AWADDR][31:24] <= AXI_WDATA[31:24];
+        if (RISCOF_TEST_MODE)
+        begin
+            if (AXI_WSTRB[0]) ram[AXI_AWADDR][7:0] <= AXI_WDATA[7:0];
+            if (AXI_WSTRB[1]) ram[AXI_AWADDR][15:8] <= AXI_WDATA[15:8];
+            if (AXI_WSTRB[2]) ram[AXI_AWADDR][23:16] <= AXI_WDATA[23:16];
+            if (AXI_WSTRB[3]) ram[AXI_AWADDR][31:24] <= AXI_WDATA[31:24];
+        end
+        else
+        begin
+            if (AXI_WSTRB[0])
+                DMEM_WDATA[7:0] <= AXI_WDATA[7:0];
+            else
+                DMEM_WDATA[7:0] <= DMEM_WDATA_READ[7:0];
+            if (AXI_WSTRB[1])
+                DMEM_WDATA[15:8] <= AXI_WDATA[15:8];
+            else
+                DMEM_WDATA[15:8] <= DMEM_WDATA_READ[15:8];
+            if (AXI_WSTRB[2])
+                DMEM_WDATA[23:16] <= AXI_WDATA[23:16];
+            else
+                DMEM_WDATA[23:16] <= DMEM_WDATA_READ[23:16];
+            if (AXI_WSTRB[3])
+                DMEM_WDATA[31:24] <= AXI_WDATA[31:24];
+            else
+                DMEM_WDATA[31:24] <= DMEM_WDATA_READ[31:24];
+        end
     end
     else;
 end
 
+// ================================
 // WRITE RESPONSE CHANNEL
+// ================================
+
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
@@ -90,7 +130,10 @@ begin
         AXI_BVALID <= 1'b0;
 end
 
+// ================================
 // READ ADDRESS CHANNEL
+// ================================
+
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
@@ -103,6 +146,10 @@ begin
             AXI_ARREADY <= 0;
         end
 end
+
+// ================================
+// READ DATA CHANNEL
+// ================================
 
 always @(posedge AXI_ACLK)
 begin
@@ -117,7 +164,10 @@ begin
         begin
             AXI_RVALID <= 1'b1;
             AXI_RRESP <= 2'b00;
-            AXI_RDATA <= ram[AXI_ARADDR];
+            if (RISCOF_TEST_MODE)
+                AXI_RDATA <= DMEM_RDATA;
+            else
+                AXI_RDATA <= ram[AXI_ARADDR];
         end // Assume that AXI_RREADY is high for one clock-cycle longer than AXI_RVALID
         else if (AXI_RVALID & AXI_RREADY)
             AXI_RVALID <= 1'b0;

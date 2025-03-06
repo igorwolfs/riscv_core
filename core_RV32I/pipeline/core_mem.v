@@ -23,7 +23,7 @@ module core_mem #(
     output reg                  AXI_BREADY, // When high, indicates store instruction is done
     // Address read channel
     output [AXI_AWIDTH-1:0]     AXI_ARADDR,
-    output                      AXI_ARVALID,
+    output reg                  AXI_ARVALID,
     input	                    AXI_ARREADY,
     // Read data channel
     input  [AXI_DWIDTH-1:0]		AXI_RDATA,
@@ -33,8 +33,8 @@ module core_mem #(
 
 	// ***  ***
 	input 						C_DOLOAD, 	// Indicates load instruction
-	input						DOLOADBS,	// 7th byte needs to be extended
-	input						DOLOADHWS,	// 16th byte needs to be extended
+	input						ISLOADBS,	// 7th byte needs to be extended
+	input						ISLOADHWS,	// 16th byte needs to be extended
 	input						C_DOSTORE,	// Indicates store instruction
 	input  	[31:0] 				ADDR, 	// LOAD / STORE ADDRESS: reg1 + imm
 	input  	[31:0]				WDATA, 	// Data to be stored at ADDR
@@ -48,7 +48,7 @@ assign AXI_WSTRB = STRB;
 // ==========================
 // AXI WRITE ADDRESS CHANNEL
 // ==========================
-assign AXI_WADDR = ADDR;
+assign AXI_AWADDR = ADDR;
 
 always @(posedge CLK)
 begin
@@ -114,7 +114,7 @@ always @(posedge CLK)
 begin
 	if (!NRST)
 		AXI_ARVALID <= 0;
-	else if (C_DO_LOAD)
+	else if (C_DOLOAD)
 	begin
 		// KEEP READY ASSERTED UNTIL READY HAPPENS => They should stop simultaneously
 		if (!AXI_ARREADY)
@@ -141,8 +141,8 @@ wire [31:0] reg_rdata_sh = (STRB[0]) ? reg_rdata :
 									(STRB[2]) ? reg_rdata >> 16 :
 									reg_rdata >> 24;
 // SET READ DATA
-assign RDATA = (DOLOADBS) ? {{24{reg_rdata_sh[24]}}, reg_rdata_sh[7:0]} :
-				(DOLOADHWS) ? {{16{reg_rdata_sh[16]}}, reg_rdata_sh[15:0]} :
+assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[24]}}, reg_rdata_sh[7:0]} :
+				(ISLOADHWS) ? {{16{reg_rdata_sh[16]}}, reg_rdata_sh[15:0]} :
 				reg_rdata_sh;
 
 
@@ -151,12 +151,12 @@ always @(posedge CLK)
 begin
 	if (!NRST)
 		AXI_RREADY <= 0;
-	else if (C_INSTR_FETCH)
+	else if (C_DOLOAD)
 		begin
 			if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 				begin
 				AXI_RREADY <= 1;
-				data_reg_read <= AXI_RDATA;
+				reg_rdata <= AXI_RDATA;
 				end
 			else
 				AXI_RREADY <= 0;

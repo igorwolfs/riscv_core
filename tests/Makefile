@@ -16,10 +16,7 @@ endif
 
 # Verilator options
 VERILATOR_OPTS = -cc \
-    -Wno-NULLPORT \
-    -Wno-COMBDLY \
     -Wno-PINMISSING \
-    -Wno-MODDUP \
     --exe \
     --trace \
     --trace-structs \
@@ -27,6 +24,9 @@ VERILATOR_OPTS = -cc \
     --timing
 
  # Make sure to unset this warning when first compiling + check warnings (
+ # -Wno-MODDUP \
+ # -Wno-COMBDLY \
+ # -Wno-NULLPORT \
  # -Wno-UNOPTFLAT
 
 .PHONY: run clean

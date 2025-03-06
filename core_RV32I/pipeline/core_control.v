@@ -15,13 +15,9 @@ module core_control (
 	input 			CLK, NRST,
 	// *** INSTRUCTION FETCH SIGNALS
 	input [31:0] 	INSTRUCTION,
-	input 			PC,
-	output 			C_INSTR_FETCH,
-	output 			C_PC_UPDATE,
-	output [3:0]	C_WB_CODE,
-	
+	input [31:0]	PC,
+
 	// *** REGISTER SIGNALS
-	output 			C_REG_AWVALID,
 	output [4:0] 	REG_ARADDR1, // Which read register 1 to use
 	output [4:0] 	REG_ARADDR2, // Which read register 2 to use
 	output [4:0] 	REG_AWADDR,  // Which register to write to
@@ -31,15 +27,12 @@ module core_control (
 	// *** GENERAL
 	output [31:0]	IMM,
 	// *** ALU SIGNALS
-	output 			C_ALU,
 	output [3:0]	OPCODE_ALU,
 	output			IS_IMM, 	// Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
 	// *** MEMORY SIGNALS
-	output [31:0] 	DMEM_ADDR, // Determines load / store address
-	output			C_DOLOAD,
+	output [31:0] 	DMEM_ARADDR, // Determines load / store address
 	output			ISLOADBS,
 	output			ISLOADHWS,
-	output			C_DOSTORE,
 	output [3:0]	STRB,
 	// *** INSTRUCTION MEMORY AXI SIGNALS
 	// And for read valid
@@ -51,7 +44,16 @@ module core_control (
 	input			HOST_AXI_RREADY,
 	// Read valid
 	input 			HOST_AXI_BVALID,
-	input			HOST_AXI_BREADY
+	input			HOST_AXI_BREADY,
+
+	// *** CONTROL SIGNALS
+	output reg			C_INSTR_FETCH,
+	output reg			C_PC_UPDATE,
+	output reg [3:0]	C_WB_CODE,
+	output reg 			C_REG_AWVALID,
+	output reg			C_DOLOAD,
+	output reg			C_DOSTORE,
+	output reg			C_ALU
 );
 
 	// MEMORY SIGNALS
@@ -61,11 +63,10 @@ module core_control (
 	wire [6:0] 	opcode;
 	wire [2:0] 	funct3;
 	wire [6:0] 	funct7;
+	wire [31:0]	imm_dec;
+
 	// BRANCHING SIGNALS
 	wire 		take_branch;
-
-	// CONTROL SIGNALS
-	wire c_decode, c_cmem, c_branch;
 
 	core_idecode core_idecode_inst (
 		.CLK(CLK),
@@ -75,18 +76,19 @@ module core_control (
 		.OPCODE(opcode),
 		.FUNCT3(funct3),
 		.FUNCT7(funct7),
-		.IMM(IMM),
+		.IMM_DEC(imm_dec),
 		.IS_IMM(IS_IMM),
 		.REG_ARADDR1(REG_ARADDR1),
 		.REG_ARADDR2(REG_ARADDR2),
 		.REG_AWADDR(REG_AWADDR)
 	);
 
+	wire [31:0] alu_imm;
 	core_calu core_calu_inst (
         .OPCODE(opcode),
         .FUNCT3(funct3),
         .FUNCT7(funct7),
-        .IMM(imm),
+        .IMM(imm_dec),
         .ALU_IMM(alu_imm),
         .OPCODE_ALU(OPCODE_ALU)
     );
@@ -106,13 +108,12 @@ module core_control (
 		.C_CMEM(c_cmem),
 		.OPCODE(opcode),
 		.PC(PC),
-		.IMM(imm),
+		.IMM(imm_dec),
 		.REG_RDATA1(REG_RDATA1),
-		.DMEM_ADDR(DMEM_ADDR),
-		.ISLOAD(isload),
+		.FUNCT3(funct3),
+		.DMEM_ARADDR(DMEM_ARADDR),
 		.ISLOADBS(isloadbs),
 		.ISLOADHWS(isloadhws),
-		.ISSTORE(isstore),
 		.STRB(STRB)
 	);
 
@@ -125,15 +126,17 @@ module core_control (
 	localparam S_MEM 			= 3;
 	localparam S_WB 			= 4;
 
-	reg [3:0] state_machine;
-	wire [3:0] next_state;
+	reg [3:0] next_state;
+	reg c_decode, c_cmem, c_branch;
 
-	IMM = (C_ALU & (opcode == `OPCODE_I_ALU)) ? alu_imm : imm;
+
+	assign IMM = (C_ALU & (opcode == `OPCODE_I_ALU)) ? alu_imm : imm_dec;
 	// ASSIGN NEXT STATE DEPENDING ON WHETHER S_IFETCH WAS SUCCESFULL
 	always @(*)
 	begin
 		C_INSTR_FETCH = 1'b0;
 		C_ALU = 1'b0;
+		c_decode = 1'b0;
 		C_REG_AWVALID = 1'b0;
 		c_cmem = 1'b0;
 		C_DOSTORE = 1'b0;
@@ -151,9 +154,11 @@ module core_control (
 					C_INSTR_FETCH = 1'b0;
 					next_state = S_IDECODE;
 				end
+				else;
 			end
 			S_IDECODE:
 				begin
+				c_decode = 1'b1;
 				// Register read and decode stage (takes 1 cycle, always)
 				case (opcode)
 					`OPCODE_J_JAL, `OPCODE_I_JALR, `OPCODE_U_LUI, `OPCODE_U_AUIPC:
@@ -193,6 +198,8 @@ module core_control (
 						next_state = S_WB;
 						c_branch = 1'b1;
 						end
+					default:
+						next_state = S_WB;
 					endcase
 				end
 			S_MEM:
@@ -206,21 +213,23 @@ module core_control (
 						else
 							next_state = S_MEM;
 					end
-				`OPCODE_I_STORE:
+				`OPCODE_S:
 					begin
 						C_DOSTORE = 1'b1;
-						if (HOST_AXI_BVALID & HSOT_AXI_BREADY) // DMEM AXI STALL
+						if (HOST_AXI_BVALID & HOST_AXI_BREADY) // DMEM AXI STALL
 							next_state = S_WB;
 						else
 							next_state = S_MEM;
 					end
+				default:
+					next_state = S_WB;
 			endcase
 			S_WB:
 			begin
 				next_state = S_IFETCH;
 				C_PC_UPDATE = 1'b1;
 				case (opcode)
-					`OPCODE_R, OPCODE_I_ALU:
+					`OPCODE_R, `OPCODE_I_ALU:
 						begin
 							C_WB_CODE = `WB_CODE_ALU;
 							C_REG_AWVALID = 1'b1;
@@ -260,16 +269,18 @@ module core_control (
 							C_REG_AWVALID = 1'b1;
 							// Make sure the imm + PC is written here
 						end
-					`OPCODE_S:;
+					default:;
 				endcase
 			end
 		endcase
 	end
 
+	reg [3:0] state_machine;
+
 	always @(posedge CLK)
 	begin
 		if (!NRST)
-			state_machine <= S_IFETCH
+			state_machine <= S_IFETCH;
 		else
 			state_machine <= next_state;
 	end
@@ -337,6 +348,13 @@ INSIDE THE CORE CONTROL
 	- Keep them somewhere central
 - For now latch the registers on the outside
 	- Keep the complex pipelining-register logic for a later stage, make sure your FSM works first
+*/
+/**
+//! NOTE:
+- Signals set in an always block should always be set as registers
+HOWEVER: they won't be inferred as registers 
+- IF assigned in every posible branch of the combinatorial process.
+- ELSE latches might be inferred.
 */
 
 /**

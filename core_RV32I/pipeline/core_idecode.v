@@ -11,7 +11,7 @@ module core_idecode #()
 	output reg [2:0] 		FUNCT3,
 	output reg [6:0] 		FUNCT7,
 	output reg				IS_IMM,
-	output reg [31:0]		IMM,
+	output reg [31:0]		IMM_DEC,
 	// REGISTER READ / WRITES
 	output reg [4:0] 		REG_ARADDR1,
 	output reg [4:0] 		REG_ARADDR2,
@@ -45,6 +45,7 @@ module core_idecode #()
 	wire [4:0] reg_araddr1;
 	wire [4:0] reg_araddr2;
 	wire [4:0] reg_awaddr;
+	wire [6:0] opcode;
 
 	assign opcode = INSTRUCTION[6:0];
 
@@ -73,7 +74,7 @@ module core_idecode #()
 	begin
 		if (!NRST)
 		begin
-			IMM <= 32'hDEADBEEF;
+			IMM_DEC <= 32'hDEADBEEF;
 			IS_IMM <= 0;
 			REG_ARADDR1 <= 0;
 			REG_ARADDR2 <= 0;
@@ -83,7 +84,7 @@ module core_idecode #()
 		begin
 			// IMMEDIATE
 			IS_IMM <= is_imm;
-			IMM <= imm;
+			IMM_DEC <= imm;
 			// OPCODE
 			OPCODE <= opcode;
 			// FUNCT3/7

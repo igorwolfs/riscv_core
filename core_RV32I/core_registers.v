@@ -5,7 +5,7 @@
 - Allow resetting registers on nrst=low
 */
 
-module core_registers #(parameter P_ASYNC_READ) (
+module core_registers #() (
     input CLK, NRST,
     input AWVALID,
     input [31:0] WDATA,
@@ -37,8 +37,10 @@ begin
         RDATA2 <= 32'b0;
     end
     else
+        begin
         RDATA1 <= regs[ARADDR1];
         RDATA2 <= regs[ARADDR2];
+        end
 end
 
 endmodule
