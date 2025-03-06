@@ -90,3 +90,23 @@
 `define ALU_CODE_SLT	8
 `define ALU_CODE_SLTU	9
 `define ALU_CODE_INVALID	4'b1111
+
+//! **** WB CODES *****
+`define WB_CODE_NONE 		0
+`define WB_CODE_LOAD		1
+`define WB_CODE_STORE		2
+`define WB_CODE_BRANCH		3
+`define WB_CODE_JAL			4
+`define WB_CODE_JALR		5
+`define WB_CODE_LUI			6
+`define WB_CODE_AUIPC		7
+`define WB_CODE_ALU			8
+/**
+For PC and regwrite purposes
+- WRITE TO REGISTER: Switch-case in top_cpu that
+	- Doesn't write on BRANCH_OK (controlled by single clocked signal)
+	- Writes the relevant way on all other cases
+- PC INCREMENT: switch-case in top_cpu that
+	- Doesn't increment PC on branch fail
+	- In all other cases manages the increments with an always @(*)
+*/

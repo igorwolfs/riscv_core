@@ -26,8 +26,7 @@ module core_ifetch #(
 	output reg [31:0] 			INSTRUCTION,
 	// PC UPDATES
 	input						C_PC_UPDATE,
-	input						C_ISJUMP,  // branch taken / jump instruction
-	input [31:0]				JUMP_INCR, // By how much we increment
+	input [31:0]				PC_NEXT,
 
 	// *** PROGRAM COUNTER ***
 	output reg 					PC
@@ -42,12 +41,7 @@ begin
 	// ONLY INCREMENT IF FETCHING ISN'T IN PROGRESS => PC_INCR should be controlled by control circuitry, triggered at the end of the pipeline cycle
 	begin
 		if (PC_UPDATE)
-		begin
-			if (C_ISJUMP)
-				PC <= PC + JUMP_INCR;
-			else
-				PC <= PC + 4;
-		end
+			PC <= PC_NEXT;
 		else;
 	end
 end

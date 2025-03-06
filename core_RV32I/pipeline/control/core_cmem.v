@@ -2,22 +2,26 @@
 `include "define.vh"
 
 module core_cmem (
+	input CLK,
+	input C_CMEM,
 	input OPCODE
 	input PC,
 	input IMM,
-	input REG_RDATA1, // To determine next address
-	output [31:0] DMEM_ARADDR, // calculated from immediate
-	output ISLOAD,
-	output ISLOADBS,
-	output ISLOADHWS,
-	output ISSTORE,
-	output [3:0] STRB
+	input REG_RDATA1, 				// To determine next address
+	output reg [31:0] DMEM_ADDR, 	// calculated from immediate
+	output reg ISLOADBS,
+	output reg ISLOADHWS,
+	output reg [3:0] STRB
 );
 
 // DETERMINE WHETHER LOAD / STORE
-output ISLOAD = (OPCODE == `OPCODE_I_LOAD) ? 1 : 0;
-output ISSTORE = (OPCODE == `OPCODE_S) ? 1 : 0;
-assign DMEM_ARADDR = (REG_RDATA1 + IMM)
+wire isload, isloadbs, isloadhws, isstore;
+reg [3:0] STRB;
+reg [31:0] DMEM_ARADDR;
+
+assign isload = (OPCODE == `OPCODE_I_LOAD) ? 1 : 0;
+assign isstore = (OPCODE == `OPCODE_S) ? 1 : 0;
+assign dmem_araddr = (REG_RDATA1 + IMM)
 
 // DETERMINE STROBE FOR LOAD
 wire [7:0] load_bstrb, load_bu;
@@ -50,17 +54,29 @@ assign store_hwstrb = (DMEM_AWADDR[1:0] == 2'b00) ? 4'b0011 :
 				4'b1100;
 
 assign store_strb = (funct3 == `FUNCT3_SB) ? strb_b :
-                        (funct3 == `FUNCT3_SH) ? strb_hw :
-                        4'b1111;
+				(funct3 == `FUNCT3_SH) ? strb_hw :
+				4'b1111;
 
 // OUTPUT RELEVANT STROBE SIGNAL
-assign STRB = (ISLOAD) ? load_strb : 
+assign strb = (ISLOAD) ? load_strb :
 			(ISSTORE) : store_strb :
 			4'b0000;
 
 // OUTPUT UNSIGNED / SIGNED CASE
-assign ISLOADBS = (FUNCT3 == `FUNCT3_LB);
-assign ISLOADHWS = (FUNCT3 == `FUNCT3_LH);
+assign isloadbs = (FUNCT3 == `FUNCT3_LB);
+assign isloadhws = (FUNCT3 == `FUNCT3_LH);
+
+always @(posedge CLK)
+begin
+	if (C_CMEM)
+	begin
+		DMEM_ARADDR <= dmem_araddr;
+		ISLOADBS <= isloadbs;
+		ISLOADHWS <= isloadhws;
+		STRB <= strb;
+	end
+end
+
 endmodule
 
 /**

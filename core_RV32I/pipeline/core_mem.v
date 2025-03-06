@@ -6,7 +6,7 @@ module core_mem #(
     parameter AXI_DWIDTH = 32)
 (
     // SYSTEM
-	input  CLK, NRST,
+	input  						CLK, NRST,
 	// *** AXI INTERFACE ***
     // Write address channel
     output [AXI_AWIDTH-1:0]     AXI_AWADDR,
@@ -71,7 +71,7 @@ end
 // ==========================
 // Set write data according to strobe (data should be shifted to where first strobe occurs)
 // The data to be written is 32-bit aligned, but it is supposed to be written to a non-32bit aligned region
-assign AXI_WDATA = (STRB[0]) ? DATA : (STRB[1]) ? DATA << 8 : (STRB[2]) ? DATA << 16 : DATA << 24;
+assign AXI_WDATA = (STRB[0]) ? WDATA : (STRB[1]) ? WDATA << 8 : (STRB[2]) ? WDATA << 16 : WDATA << 24;
 
 always @(posedge CLK)
 begin
@@ -136,14 +136,15 @@ reg [31:0] reg_rdata;
 //! ALTHOUGH: it does mess things up for the write because having a strobe avoids the need for masking
 
 // SHIFT
-wire [31:0] reg_rdata_sh = (STRB[0]) ? reg_rdata : 
+wire [31:0] reg_rdata_sh = (STRB[0]) ? reg_rdata :
 									(STRB[1]) ? reg_rdata >> 8 :
-									(STRB[2]) ? reg_rdata >> 16 : 
+									(STRB[2]) ? reg_rdata >> 16 :
 									reg_rdata >> 24;
 // SET READ DATA
 assign RDATA = (DOLOADBS) ? {{24{reg_rdata_sh[24]}}, reg_rdata_sh[7:0]} :
 				(DOLOADHWS) ? {{16{reg_rdata_sh[16]}}, reg_rdata_sh[15:0]} :
 				reg_rdata_sh;
+
 
 // READ DATA CHANNEL (MASTER)
 always @(posedge CLK)
@@ -153,8 +154,10 @@ begin
 	else if (C_INSTR_FETCH)
 		begin
 			if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
+				begin
 				AXI_RREADY <= 1;
 				data_reg_read <= AXI_RDATA;
+				end
 			else
 				AXI_RREADY <= 0;
 		end
