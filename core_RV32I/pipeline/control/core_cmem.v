@@ -8,9 +8,9 @@ module core_cmem (
 	input [6:0]			OPCODE,
 	input [31:0]		PC,
 	input [31:0] 		IMM,
-	input [31:0]		REG_RDATA1, 				// To determine next address
+	input [31:0]		REG_RDATA1, 	// To determine next address
 	input [2:0]			FUNCT3,
-	output reg [31:0] 	DMEM_ADDR, 				// calculated from immediate
+	output reg [31:0] 	DMEM_ADDR, 		// Calculated from immediate
 	output reg 			ISLOADBS,
 	output reg 			ISLOADHWS,
 	output reg [3:0] 	STRB
@@ -64,15 +64,15 @@ assign strb = (isload) ? load_strb :
 			4'b0000;
 
 // OUTPUT UNSIGNED / SIGNED CASE
-assign isloadbs = ((FUNCT3 == `FUNCT3_LB) | (FUNCT3 == `FUNCT3_LBU));
-assign isloadhws = ((FUNCT3 == `FUNCT3_LH) | (FUNCT3 == `FUNCT3_LHU));
+assign isloadbs = (FUNCT3 == `FUNCT3_LB);
+assign isloadhws = (FUNCT3 == `FUNCT3_LH);
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
 		DMEM_ADDR <= 32'hDEADBEEF;
 		ISLOADBS <= 1'b0;
-		ISLOADHWS <= 1'b1;
+		ISLOADHWS <= 1'b0;
 		STRB <= 4'b0000;
 	end
 	if (C_CMEM)

@@ -77,10 +77,11 @@
 
 
 # ISSUES
-- The OPCODE setter remembers the previous opcode
-	- It sets that opcode at the clock cycle from 1->2
-	- BUT: the opcode is latched between 2->1
-	- And on clock cycle from 1->2 the opcode needs to be already known for it to jump to the correct state
-	- SO: 
-		- the state determination should be done combinatorially
-		- the opcode should be saved after state determination
+TODO:
+- sll
+	difference outcome ONLY test_inst_2:
+	- 00000000
+	- f0000000
+- sra
+- srai
+- srl

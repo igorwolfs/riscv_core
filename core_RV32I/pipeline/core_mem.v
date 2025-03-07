@@ -84,10 +84,19 @@ reg [31:0] reg_rdata;
 //! ALTHOUGH: it does mess things up for the write because having a strobe avoids the need for masking
 
 // SHIFT
-wire [31:0] reg_rdata_sh = (STRB[0]) ? reg_rdata :
-									(STRB[1]) ? reg_rdata >> 8 :
-									(STRB[2]) ? reg_rdata >> 16 :
-									reg_rdata >> 24;
+wire [7:0] byte_0, byte_1, byte_2, byte_3;
+
+assign byte_0 = STRB[0] ? reg_rdata[7:0] : 8'h0;
+assign byte_1 = STRB[1] ? reg_rdata[15:8] : 8'h0;
+assign byte_2 = STRB[2] ? reg_rdata[23:16] : 8'h0;
+assign byte_3 = STRB[3] ? reg_rdata[31:24] : 8'h0;
+
+wire [31:0] reg_rdata_strb = {byte_3, byte_2, byte_1, byte_0};
+
+wire [31:0] reg_rdata_sh = (STRB[0]) ?  {byte_3, byte_2, byte_1, byte_0} :
+									(STRB[1]) ?  {{8'b0}, byte_3, byte_2, byte_1}:
+									(STRB[2]) ? {{16'b0}, byte_3, byte_2} :
+									{{24'b0}, byte_3};
 // SET READ DATA
 assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[7]}}, reg_rdata_sh[7:0]} :
 				(ISLOADHWS) ? {{16{reg_rdata_sh[15]}}, reg_rdata_sh[15:0]} :
