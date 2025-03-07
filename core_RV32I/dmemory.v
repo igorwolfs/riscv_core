@@ -34,122 +34,83 @@ module dmemory #(parameter RISCOF_TEST_MODE = 0,
     // RISCOF
     input      [31:0]           DMEM_RDATA,
     input      [31:0]           DMEM_WDATA_READ,
-    output reg [31:0]           DMEM_WDATA
+    output reg [31:0]           DMEM_WDATA,
+    output reg                  DMEM_WVALID
 );
 
 reg [31:0] ram[INT_DMEM_SIZE-1:0];
 
-// ================================
-// WRITE ADDRESS CHANNEL
-// ================================
+// ==========================================
+// WRITE RESPONSE / DATA / ADDRESS CHANNEL
+// ==========================================
 
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
+    begin
         AXI_AWREADY <= 1'b0;
-    else
-    begin
-        if (!AXI_AWREADY & AXI_AWVALID)
-            AXI_AWREADY <= 1'b1;
-        else
-            AXI_AWREADY <= 1'b0;
-    end
-end
-
-
-// ================================
-// WRITE DATA CHANNEL
-// ================================
-
-always @(posedge AXI_ACLK)
-begin
-    if (!AXI_ARESETN)
         AXI_WREADY <= 1'b0;
-    else
-    begin
-        if (!AXI_WREADY & AXI_WVALID)
-            AXI_WREADY <= 1'b1; // Accept write data
-        else
-            AXI_WREADY <= 1'b0;
+        AXI_BVALID <= 1'b0;
+        DMEM_WVALID <= 1'b0;
     end
-end
-
-// ================================
-// WRITE READY CHANNEL
-// ================================
-
-always @(posedge AXI_ACLK)
-begin
     // If both the write and the address write channel are valid => Write to memory
-    if (AXI_WREADY & AXI_WVALID & AXI_AWREADY & AXI_AWVALID)
+    if (AXI_WVALID & AXI_AWVALID)
     begin
-        if (RISCOF_TEST_MODE)
+        if (AXI_AWREADY & AXI_WREADY)
         begin
-            if (AXI_WSTRB[0]) ram[AXI_AWADDR][7:0] <= AXI_WDATA[7:0];
-            if (AXI_WSTRB[1]) ram[AXI_AWADDR][15:8] <= AXI_WDATA[15:8];
-            if (AXI_WSTRB[2]) ram[AXI_AWADDR][23:16] <= AXI_WDATA[23:16];
-            if (AXI_WSTRB[3]) ram[AXI_AWADDR][31:24] <= AXI_WDATA[31:24];
+            AXI_AWREADY <= 1'b0;
+            AXI_WREADY <= 1'b0;
+            AXI_BVALID <= 1'b0;
+            if (!RISCOF_TEST_MODE)
+            begin
+                if (AXI_WSTRB[0]) ram[AXI_AWADDR][7:0] <= AXI_WDATA[7:0];
+                if (AXI_WSTRB[1]) ram[AXI_AWADDR][15:8] <= AXI_WDATA[15:8];
+                if (AXI_WSTRB[2]) ram[AXI_AWADDR][23:16] <= AXI_WDATA[23:16];
+                if (AXI_WSTRB[3]) ram[AXI_AWADDR][31:24] <= AXI_WDATA[31:24];
+            end
+            else
+            begin
+                DMEM_WVALID <= 1'b1;
+                if (AXI_WSTRB[0])
+                    DMEM_WDATA[7:0] <= AXI_WDATA[7:0];
+                else
+                    DMEM_WDATA[7:0] <= DMEM_WDATA_READ[7:0];
+                if (AXI_WSTRB[1])
+                    DMEM_WDATA[15:8] <= AXI_WDATA[15:8];
+                else
+                    DMEM_WDATA[15:8] <= DMEM_WDATA_READ[15:8];
+                if (AXI_WSTRB[2])
+                    DMEM_WDATA[23:16] <= AXI_WDATA[23:16];
+                else
+                    DMEM_WDATA[23:16] <= DMEM_WDATA_READ[23:16];
+                if (AXI_WSTRB[3])
+                    DMEM_WDATA[31:24] <= AXI_WDATA[31:24];
+                else
+                    DMEM_WDATA[31:24] <= DMEM_WDATA_READ[31:24];
+            end
         end
         else
         begin
-            if (AXI_WSTRB[0])
-                DMEM_WDATA[7:0] <= AXI_WDATA[7:0];
-            else
-                DMEM_WDATA[7:0] <= DMEM_WDATA_READ[7:0];
-            if (AXI_WSTRB[1])
-                DMEM_WDATA[15:8] <= AXI_WDATA[15:8];
-            else
-                DMEM_WDATA[15:8] <= DMEM_WDATA_READ[15:8];
-            if (AXI_WSTRB[2])
-                DMEM_WDATA[23:16] <= AXI_WDATA[23:16];
-            else
-                DMEM_WDATA[23:16] <= DMEM_WDATA_READ[23:16];
-            if (AXI_WSTRB[3])
-                DMEM_WDATA[31:24] <= AXI_WDATA[31:24];
-            else
-                DMEM_WDATA[31:24] <= DMEM_WDATA_READ[31:24];
+            DMEM_WVALID <= 1'b0;
+            AXI_AWREADY <= 1'b1;
+            AXI_WREADY <= 1'b1;
+            AXI_BVALID <= 1'b1;
+            AXI_BRESP <= 2'b00;
         end
     end
-    else;
-end
-
-// ================================
-// WRITE RESPONSE CHANNEL
-// ================================
-
-always @(posedge AXI_ACLK)
-begin
-    if (!AXI_ARESETN)
-        AXI_BVALID <= 1'b0;
-    if (!AXI_BVALID & AXI_WREADY & AXI_WVALID & AXI_AWREADY & AXI_AWVALID)
+    else
     begin
-        AXI_BRESP <= 2'b00;
-        AXI_BVALID <= 1'b1;
-    end
-    else
+        DMEM_WVALID <= 1'b0;
+        AXI_AWREADY <= 1'b0;
+        AXI_WREADY <= 1'b0;
         AXI_BVALID <= 1'b0;
+    end
 end
 
 // ================================
-// READ ADDRESS CHANNEL
+// READ DATA / ADDRESS CHANNEL
 // ================================
 
-always @(posedge AXI_ACLK)
-begin
-    if (!AXI_ARESETN)
-        AXI_ARREADY <= 1'b0;
-    else
-        begin
-        if (AXI_ARVALID & !AXI_ARREADY)
-            AXI_ARREADY <= 1;
-        else
-            AXI_ARREADY <= 0;
-        end
-end
-
-// ================================
-// READ DATA CHANNEL
-// ================================
 
 always @(posedge AXI_ACLK)
 begin
@@ -157,21 +118,35 @@ begin
     begin
         AXI_RDATA <= 32'hDEADBEEF;
         AXI_RVALID <= 1'b0;
+        AXI_ARREADY <= 1'b0;
     end
     else
     begin
-        if (!AXI_RVALID & AXI_RREADY & AXI_ARREADY)
+        if (AXI_ARVALID & AXI_RREADY)
         begin
-            AXI_RVALID <= 1'b1;
-            AXI_RRESP <= 2'b00;
-            if (RISCOF_TEST_MODE)
-                AXI_RDATA <= DMEM_RDATA;
+            if (AXI_RVALID & AXI_ARREADY)
+            begin
+                AXI_RVALID <= 1'b0;
+                AXI_ARREADY <= 1'b0;
+                // SHOULD BE REPLACED BY MEMREAD
+                if (RISCOF_TEST_MODE)
+                    AXI_RDATA <= DMEM_RDATA;
+                else
+                    AXI_RDATA <= ram[AXI_ARADDR];
+            end
             else
-                AXI_RDATA <= ram[AXI_ARADDR];
-        end // Assume that AXI_RREADY is high for one clock-cycle longer than AXI_RVALID
-        else if (AXI_RVALID & AXI_RREADY)
+            begin
+                AXI_RVALID <= 1'b1;
+                AXI_ARREADY <= 1'b1;
+                AXI_RRESP <= 2'b00;
+            end
+        end
+        else
+        begin
             AXI_RVALID <= 1'b0;
-        else;
+            AXI_ARREADY <= 1'b0;
+            AXI_RDATA <= DMEM_RDATA;
+        end
     end
 end
 

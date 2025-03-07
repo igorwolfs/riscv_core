@@ -24,23 +24,10 @@ module imemory #(parameter RISCOF_TEST_MODE = 0,
 reg [31:0] ram [IMEM_SIZE-1:0];
 
 // ================================
-// READ ADDRESS CHANNEL
+// READ DATA / ADDRESS CHANNEL
 // ================================
 
-always @(posedge AXI_ACLK)
-begin
-    if (!AXI_ARESETN)
-        AXI_ARREADY <= 1'b0;
-    else
-        if (!AXI_ARREADY & AXI_ARVALID)
-            AXI_ARREADY <= 1'b1;
-        else
-            AXI_ARREADY <= 1'b0;
-end
 
-// ================================
-// READ DATA CHANNEL
-// ================================
 
 always @(posedge AXI_ACLK)
 begin
@@ -48,22 +35,36 @@ begin
     begin
         AXI_RDATA <= 32'hDEADBEEF;
         AXI_RVALID <= 1'b0;
+        AXI_ARREADY <= 1'b0;
     end
     else
+    begin
+        if (AXI_ARVALID & AXI_RREADY)
         begin
-            if (AXI_ARREADY & AXI_ARVALID & AXI_RREADY)
+            if (AXI_RVALID & AXI_ARREADY)
             begin
-                AXI_RVALID <= 1'b1;
-                AXI_RRESP <= 2'b00;
+                AXI_RVALID <= 1'b0;
+                AXI_ARREADY <= 1'b0;
                 // SHOULD BE REPLACED BY MEMREAD
                 if (RISCOF_TEST_MODE)
                     AXI_RDATA <= IMEM_RDATA;
                 else
                     AXI_RDATA <= ram[AXI_ARADDR];
             end
-            else if (AXI_RVALID & AXI_RREADY)
-                AXI_RVALID <= 1'b0;
+            else
+            begin
+                AXI_RVALID <= 1'b1;
+                AXI_ARREADY <= 1'b1;
+                AXI_RRESP <= 2'b00;
+            end
         end
+        else
+        begin
+            AXI_RVALID <= 1'b0;
+            AXI_ARREADY <= 1'b0;
+            AXI_RDATA <= IMEM_RDATA;
+        end
+    end
 end
 
 //! NOTE: write-instruction to instruction memory should never happen!

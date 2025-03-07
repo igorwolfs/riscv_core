@@ -55,45 +55,33 @@ assign AXI_ARADDR = PC;
 always @(posedge CLK)
 begin
 	if (!NRST)
-		AXI_ARVALID <= 0;
-	else if (C_INSTR_FETCH)
 	begin
-		// KEEP READY ASSERTED UNTIL READY HAPPENS => They should stop simultaneously
-		if (!AXI_ARREADY)
-			AXI_ARVALID <= 1;
-		else
-			AXI_ARVALID <= 0;
-	end
-	else
 		AXI_ARVALID <= 0;
-end
-
-// READ DATA CHANNEL (MASTER)
-always @(posedge CLK)
-begin
-	if (!NRST)
-	begin
-		INSTRUCTION <= 32'hDEADBEEF;
 		AXI_RREADY <= 0;
+		INSTRUCTION <= 32'hDEADBEEF;
 	end
 	else if (C_INSTR_FETCH)
+	begin
+		// Always ready to receive instructions on C_INSTR_FETCH
+		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 		begin
-			if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
-			begin
-				AXI_RREADY <= 1;
-				INSTRUCTION <= AXI_RDATA;
-			end
-			else
-			begin
-				INSTRUCTION <= 32'hDEADBEEF;
-				AXI_RREADY <= 0;
-			end
+			AXI_ARVALID <= 1'b0;
+			AXI_RREADY <= 1'b0;
+			INSTRUCTION <= AXI_RDATA;
 		end
+		else
+			begin
+			AXI_ARVALID <= 1'b1;
+			AXI_RREADY <= 1'b1;
+			// INSTRUCTION <= 32'hDEADBEEF;
+			end
+	end
 	else
-		begin
-			INSTRUCTION <= 32'hDEADBEEF;
-			AXI_RREADY <= 0;
-		end
+	begin
+		AXI_ARVALID <= 1'b0;
+		AXI_RREADY <= 1'b0;
+		// INSTRUCTION <= 32'hDEADBEEF;
+	end
 end
 
 endmodule

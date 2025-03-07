@@ -3,13 +3,14 @@
 
 module core_cmem (
 	input 				CLK,
+	input 				NRST,
 	input 				C_CMEM,
 	input [6:0]			OPCODE,
 	input [31:0]		PC,
 	input [31:0] 		IMM,
 	input [31:0]		REG_RDATA1, 				// To determine next address
 	input [2:0]			FUNCT3,
-	output reg [31:0] 	DMEM_ARADDR, 	// calculated from immediate
+	output reg [31:0] 	DMEM_ADDR, 				// calculated from immediate
 	output reg 			ISLOADBS,
 	output reg 			ISLOADHWS,
 	output reg [3:0] 	STRB
@@ -17,21 +18,21 @@ module core_cmem (
 
 // DETERMINE WHETHER LOAD / STORE
 wire isload, isloadbs, isloadhws, isstore;
-wire [31:0] dmem_araddr;
+wire [31:0] dmem_addr;
 
 assign isload = (OPCODE == `OPCODE_I_LOAD) ? 1 : 0;
 assign isstore = (OPCODE == `OPCODE_S) ? 1 : 0;
-assign dmem_araddr = (REG_RDATA1 + IMM);
+assign dmem_addr = (REG_RDATA1 + IMM);
 
 // DETERMINE STROBE FOR LOAD
 wire [3:0] load_bstrb, load_hwstrb, load_strb;
 
-assign load_bstrb = (dmem_araddr[1:0] == 2'b00) ? 4'b0001:
-                (dmem_araddr[1:0] == 2'b01) ? 4'b0010 :
-                (dmem_araddr[1:0] == 2'b10) ? 4'b0100 :
+assign load_bstrb = (dmem_addr[1:0] == 2'b00) ? 4'b0001:
+                (dmem_addr[1:0] == 2'b01) ? 4'b0010 :
+                (dmem_addr[1:0] == 2'b10) ? 4'b0100 :
                 4'b1000;
 
-assign load_hwstrb = (dmem_araddr[1:0] == 2'b00) ? 4'b0011 :
+assign load_hwstrb = (dmem_addr[1:0] == 2'b00) ? 4'b0011 :
                 4'b1100;
 
 assign load_strb = ((FUNCT3 == `FUNCT3_LB) | (FUNCT3 == `FUNCT3_LBU)) ? load_bstrb :
@@ -43,14 +44,14 @@ assign load_strb = ((FUNCT3 == `FUNCT3_LB) | (FUNCT3 == `FUNCT3_LBU)) ? load_bst
 wire [3:0] store_bstrb, store_hwstrb, store_strb;
 wire [3:0] strb;
 
-assign store_bstrb = (dmem_araddr[1:0] == 2'b00) ? 4'b0001 :
-				(dmem_araddr[1:0] == 2'b01) ? 4'b0010 :
-				(dmem_araddr[1:0] == 2'b10) ? 4'b0100 :
+assign store_bstrb = (dmem_addr[1:0] == 2'b00) ? 4'b0001 :
+				(dmem_addr[1:0] == 2'b01) ? 4'b0010 :
+				(dmem_addr[1:0] == 2'b10) ? 4'b0100 :
 				4'b1000;
 
 
-assign store_hwstrb = (dmem_araddr[1:0] == 2'b00) ? 4'b0011 :
-				(dmem_araddr[1:0] == 2'b01) ? 4'b0110 :
+assign store_hwstrb = (dmem_addr[1:0] == 2'b00) ? 4'b0011 :
+				(dmem_addr[1:0] == 2'b01) ? 4'b0110 :
 				4'b1100;
 
 assign store_strb = (FUNCT3 == `FUNCT3_SB) ? store_bstrb :
@@ -67,9 +68,16 @@ assign isloadbs = ((FUNCT3 == `FUNCT3_LB) | (FUNCT3 == `FUNCT3_LBU));
 assign isloadhws = ((FUNCT3 == `FUNCT3_LH) | (FUNCT3 == `FUNCT3_LHU));
 always @(posedge CLK)
 begin
+	if (!NRST)
+	begin
+		DMEM_ADDR <= 32'hDEADBEEF;
+		ISLOADBS <= 1'b0;
+		ISLOADHWS <= 1'b1;
+		STRB <= 4'b0000;
+	end
 	if (C_CMEM)
 	begin
-		DMEM_ARADDR <= dmem_araddr;
+		DMEM_ADDR <= dmem_addr;
 		ISLOADBS <= isloadbs;
 		ISLOADHWS <= isloadhws;
 		STRB <= strb;

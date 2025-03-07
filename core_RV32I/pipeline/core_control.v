@@ -30,14 +30,14 @@ module core_control (
 	output [3:0]	OPCODE_ALU,
 	output			IS_IMM, 	// Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
 	// *** MEMORY SIGNALS
-	output [31:0] 	DMEM_ARADDR, // Determines load / store address
+	output [31:0] 	DMEM_ADDR, // Determines load / store address
 	output			ISLOADBS,
 	output			ISLOADHWS,
 	output [3:0]	STRB,
 	// *** INSTRUCTION MEMORY AXI SIGNALS
 	// And for read valid
 	input			IMEM_AXI_RVALID,
-	input			IMEM_AXI_RREADY,
+	input			IMEM_AXI_ARREADY,
 	// *** DATA MEMORY AXI SIGNALS
 	// Write valid
 	input 			HOST_AXI_RVALID,
@@ -56,11 +56,7 @@ module core_control (
 	output reg			C_ALU
 );
 
-	// MEMORY SIGNALS
-	wire isload, isloadbs, isloadhws, isstore;
-
-	// DECODER SIGNALS
-	wire [6:0] 	opcode;
+	// DECODER SIGNALS;
 	wire [2:0] 	funct3;
 	wire [6:0] 	funct7;
 	wire [31:0]	imm_dec;
@@ -85,10 +81,11 @@ module core_control (
 
 	wire [31:0] alu_imm;
 	core_calu core_calu_inst (
-        .OPCODE(opcode),
+        .OPCODE(opcode_latched),
         .FUNCT3(funct3),
         .FUNCT7(funct7),
         .IMM(imm_dec),
+		.IS_IMM(IS_IMM),
         .ALU_IMM(alu_imm),
         .OPCODE_ALU(OPCODE_ALU)
     );
@@ -105,15 +102,16 @@ module core_control (
 
 	core_cmem core_cmem_inst (
 		.CLK(CLK),
+		.NRST(NRST),
 		.C_CMEM(c_cmem),
-		.OPCODE(opcode),
+		.OPCODE(opcode_latched),
 		.PC(PC),
 		.IMM(imm_dec),
 		.REG_RDATA1(REG_RDATA1),
 		.FUNCT3(funct3),
-		.DMEM_ARADDR(DMEM_ARADDR),
-		.ISLOADBS(isloadbs),
-		.ISLOADHWS(isloadhws),
+		.DMEM_ADDR(DMEM_ADDR),
+		.ISLOADBS(ISLOADBS),
+		.ISLOADHWS(ISLOADHWS),
 		.STRB(STRB)
 	);
 
@@ -131,6 +129,9 @@ module core_control (
 
 
 	assign IMM = (C_ALU & (opcode == `OPCODE_I_ALU)) ? alu_imm : imm_dec;
+
+	wire [6:0] opcode;
+	reg [6:0] opcode_latched;
 	// ASSIGN NEXT STATE DEPENDING ON WHETHER S_IFETCH WAS SUCCESFULL
 	always @(*)
 	begin
@@ -143,18 +144,21 @@ module core_control (
 		C_DOLOAD = 1'b0;
 		c_branch = 1'b0;
 		C_PC_UPDATE = 1'b0;
-		C_WB_CODE = 4'b0;
+		C_WB_CODE = `WB_CODE_NONE;
+		next_state = S_IFETCH;
 		case (state_machine)
 			S_IFETCH:
 			begin
-				C_INSTR_FETCH = 1'b1; // Enable instruction fetch
 				// Instruction fetch
-				if (IMEM_AXI_RVALID & IMEM_AXI_RREADY)
+				C_INSTR_FETCH = 1'b1;
+				if (IMEM_AXI_RVALID & IMEM_AXI_ARREADY)
 				begin
-					C_INSTR_FETCH = 1'b0;
 					next_state = S_IDECODE;
 				end
-				else;
+				else
+				begin
+					next_state = S_IFETCH;
+				end
 			end
 			S_IDECODE:
 				begin
@@ -172,7 +176,6 @@ module core_control (
 				// Depending on the type of instruction we'll have to do one (or more) of various things
 				// Operations with register operands
 				// Branching calculations
-				// Create increment for PC (should be known here)
 				begin
 				case (opcode)
 					`OPCODE_R:
@@ -186,13 +189,11 @@ module core_control (
 						next_state = S_WB; // Go to next state, by default immediate is not used
 						C_ALU = 1'b1;
 						end
-
 					`OPCODE_I_LOAD, `OPCODE_S:
 						begin
 						next_state = S_MEM;
 						c_cmem = 1'b1; // Latches the memory control signal
 						end
-
 					`OPCODE_B:
 						begin
 						next_state = S_WB;
@@ -226,6 +227,7 @@ module core_control (
 			endcase
 			S_WB:
 			begin
+				// PC increment calculation from immediates
 				next_state = S_IFETCH;
 				C_PC_UPDATE = 1'b1;
 				case (opcode)
@@ -245,6 +247,10 @@ module core_control (
 							C_WB_CODE = `WB_CODE_LOAD;
 							C_REG_AWVALID = 1'b1;
 						end
+					`OPCODE_S:
+					begin
+						C_WB_CODE = `WB_CODE_STORE;
+					end
 					`OPCODE_J_JAL:
 						begin
 							C_WB_CODE = `WB_CODE_JAL;
@@ -282,6 +288,7 @@ module core_control (
 		if (!NRST)
 			state_machine <= S_IFETCH;
 		else
+			opcode_latched <= opcode;
 			state_machine <= next_state;
 	end
 

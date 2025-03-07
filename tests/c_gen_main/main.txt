@@ -15,13 +15,13 @@ Disassembly of section .text:
 - Add 16 to the stack pointer and store in s0 (which is 0-16+16=0)
    c:	01010413          	addi	s0,sp,16
 - do nothing
-  10:	00000013          	nop
+  10:	00000013          	nop  ( `ADDI x0, x0, 0`.)
 - load word from 12 + stack pointer
-   - This will fail due to shitty memory limitations
-  14:	00c12083          	lw	ra,12(sp)
+   - So load the value from memory address x2 + 12 to x1
+  14:	00c12083          	lw	ra [x1],12(sp[x2])
 - load word from from 8 + stack pointer into s0
    - Again, erroneous memory address
-  18:	00812403          	lw	s0,8(sp)
+  18:	00812403          	lw	s0 [x8],8(sp)
 - Add 16 to the stack pointer
   1c:	01010113          	addi	sp,sp,16
 - ret? -> Something is up with the last instruction that changes x0
@@ -31,3 +31,19 @@ Disassembly of section .text:
   20:	00008067          	ret
 - https://stackoverflow.com/questions/58385750/what-do-these-opcodes-do
 
+
+
+/**
+ISSUE:
+- Do we need the LOAD and STORE instructions to pass through the EXEC stage?
+   - I don't see why, the exec stage does
+      - ALU operations
+      - branch operations
+   - Everything that was latched for one clock-cycle inside the S_IDECODE stage is gone by then
+   - So why would we?
+   
+BECAUSE:
+- The REAG_AWADDR, ARADDR1, ARADDR2 etc.. takes 1 clock cycle to get loaded into memory.
+- The signals that we still need in later stages (e.g. write in WB) need to be latched through the pipeline
+- The signals we don't need / need earlier should be known and taken into account.
+*/

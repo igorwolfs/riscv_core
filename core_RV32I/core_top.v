@@ -70,7 +70,7 @@ module core_top #(
   // DATA MEMORY
   wire c_doload, isloadbs, isloadhws;
   wire c_dostore;
-  wire [31:0] dmem_araddr, dmem_wdata, dmem_rdata;
+  wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
 
   // ************ UNITS *****************
@@ -104,14 +104,14 @@ module core_top #(
     .IS_IMM(is_imm),
 
     // MEMORY OPERATIONS (LOAD / STORE)
-    .DMEM_ARADDR(dmem_araddr),
+    .DMEM_ADDR(dmem_addr),
     .C_DOLOAD(c_doload), .ISLOADBS(isloadbs),
     .ISLOADHWS(isloadhws), .C_DOSTORE(c_dostore),
     .STRB(dmem_strb),
 
     // AXI SIGNALS FOR CONTROL
     // > IMEM (READ ONLY)
-    .IMEM_AXI_RVALID(IMEM_AXI_RVALID), .IMEM_AXI_RREADY(IMEM_AXI_RREADY),
+    .IMEM_AXI_RVALID(IMEM_AXI_RVALID), .IMEM_AXI_ARREADY(IMEM_AXI_ARREADY),
     // > DMEM (LOAD / STORE)
     .HOST_AXI_RVALID(HOST_AXI_RVALID), .HOST_AXI_RREADY(HOST_AXI_RREADY),
     .HOST_AXI_BVALID(HOST_AXI_BVALID), .HOST_AXI_BREADY(HOST_AXI_BREADY)
@@ -157,7 +157,7 @@ module core_top #(
     core_mem #(
         .AXI_AWIDTH(AXI_AWIDTH),
         .AXI_DWIDTH(AXI_DWIDTH)
-    ) core_imem_inst (
+    ) core_mem_inst (
         .CLK(CLK),
         .NRST(NRST),
 
@@ -177,7 +177,7 @@ module core_top #(
         .C_DOLOAD(c_doload), .ISLOADBS(isloadbs),
         .ISLOADHWS(isloadhws), .C_DOSTORE(c_dostore),
         
-        .ADDR(dmem_araddr), .WDATA(reg_rdata2),
+        .ADDR(dmem_addr), .WDATA(reg_rdata2),
         .RDATA(dmem_rdata), .STRB(dmem_strb)
     );
 
@@ -186,7 +186,6 @@ module core_top #(
   reg [31:0] reg_wdata;
   always @(*)
   begin
-    reg_wdata = 32'hDEADBEEF;
     case (c_wb_code)
       `WB_CODE_ALU:
         reg_wdata = alu_o;

@@ -7,14 +7,14 @@ module core_idecode #()
 	input 					CLK, NRST,
 	input [31:0] 			INSTRUCTION,
 	input 					C_DECODE,
-	output reg [6:0] 		OPCODE,
+	output [6:0] 			OPCODE,
 	output reg [2:0] 		FUNCT3,
 	output reg [6:0] 		FUNCT7,
 	output reg				IS_IMM,
 	output reg [31:0]		IMM_DEC,
 	// REGISTER READ / WRITES
-	output reg [4:0] 		REG_ARADDR1,
-	output reg [4:0] 		REG_ARADDR2,
+	output [4:0] 			REG_ARADDR1,
+	output [4:0] 			REG_ARADDR2,
 	output reg [4:0] 		REG_AWADDR
 );
 	// ********************* IMMEDIATE DECODING **********************
@@ -38,28 +38,37 @@ module core_idecode #()
 	assign imm_J_extended = {{12{imm_J_instr[19]}}, imm_J_instr} << 1;
 	
 	// SIGNALS
-	wire [31:0] imm;
 	wire is_imm;
 	wire [2:0] funct3;
 	wire [6:0] funct7;
 	wire [4:0] reg_araddr1;
 	wire [4:0] reg_araddr2;
 	wire [4:0] reg_awaddr;
-	wire [6:0] opcode;
 
-	assign opcode = INSTRUCTION[6:0];
+	assign OPCODE = INSTRUCTION[6:0];
 
-	assign imm = (`OPCODE_I_ALU == opcode) ? imm_I_extended :
-				 (`OPCODE_S == opcode) ? imm_S_extended :
-				 (`OPCODE_B == opcode) ? imm_B_extended :
-				 ((`OPCODE_U_LUI == opcode) || (`OPCODE_U_AUIPC == opcode)) ? imm_U_extended :
-				 (`OPCODE_J_JAL == opcode) ? imm_J_extended :
-				 32'hDEADBEEF;
+	reg [31:0] imm; // Combinatorial
+	always @(*)
+	begin
+		case (OPCODE)
+			`OPCODE_I_ALU, `OPCODE_I_LOAD, `OPCODE_I_JALR:
+				imm = imm_I_extended;
+			`OPCODE_S:
+					imm = imm_S_extended;
+			`OPCODE_B: 
+					imm = imm_B_extended;
+			`OPCODE_U_LUI, `OPCODE_U_AUIPC:
+					imm = imm_U_extended;
+			`OPCODE_J_JAL: 
+					imm = imm_J_extended;
+			default: imm = 32'hDEADBEEF;
+		endcase
+	end
 	
 
-	assign is_imm = (`OPCODE_I_ALU == opcode) || (`OPCODE_S == opcode)
-	|| (`OPCODE_B == opcode) || (`OPCODE_U_LUI == opcode)
-	|| (`OPCODE_U_AUIPC == opcode) || (`OPCODE_J_JAL == opcode);
+	assign is_imm = (`OPCODE_I_ALU == OPCODE) || (`OPCODE_S == OPCODE)
+	|| (`OPCODE_B == OPCODE) || (`OPCODE_U_LUI == OPCODE)
+	|| (`OPCODE_U_AUIPC == OPCODE) || (`OPCODE_J_JAL == OPCODE);
 
 	// FUNCT3/7
 	assign funct3 = INSTRUCTION[14:12];
@@ -67,8 +76,8 @@ module core_idecode #()
 
 	// READ / WRITE ADDRESS
 	assign reg_awaddr = INSTRUCTION[11:7];
-	assign reg_araddr1 = INSTRUCTION[19:15];
-	assign reg_araddr2 = INSTRUCTION[24:20];
+	assign REG_ARADDR1 = INSTRUCTION[19:15];
+	assign REG_ARADDR2 = INSTRUCTION[24:20];
 
 	always @(posedge CLK)
 	begin
@@ -76,8 +85,6 @@ module core_idecode #()
 		begin
 			IMM_DEC <= 32'hDEADBEEF;
 			IS_IMM <= 0;
-			REG_ARADDR1 <= 0;
-			REG_ARADDR2 <= 0;
 			REG_AWADDR <= 0;
 		end
 		else if (C_DECODE)
@@ -85,15 +92,11 @@ module core_idecode #()
 			// IMMEDIATE
 			IS_IMM <= is_imm;
 			IMM_DEC <= imm;
-			// OPCODE
-			OPCODE <= opcode;
 			// FUNCT3/7
 			FUNCT3 <= funct3;
 			FUNCT7 <= funct7;
 			// READ / WRITE REGISTER
 			REG_AWADDR <= reg_awaddr;
-			REG_ARADDR1 <= reg_araddr1;
-			REG_ARADDR2 <= reg_araddr2;
 		end
 		else;
 	end

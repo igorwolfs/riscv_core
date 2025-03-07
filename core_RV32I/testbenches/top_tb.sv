@@ -5,7 +5,7 @@
 module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*1024 // 16 MB of memory
     parameter AXI_AWIDTH=32, parameter AXI_DWIDTH=32); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
-    parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE) -1;
+    parameter MEMMAX_ADDR_IDX = $clog2(MEMSIZE)+1;
     reg sysclk = 0, NRST = 1;
     integer sig_file;
 
@@ -32,11 +32,11 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*
     // *** MEMORY INTERFACING
     // Instruction / Data Memory Test Interface
     wire [31:0] imem_rdata, dmem_rdata, dmem_wdata, dmem_wdata_read;
-
+    wire dmem_wvalid;
     // Memory read logic  (Making sure any special address space is ignored)
-    assign dmem_wdata_read = ext_memory[host_axi_awaddr[MEMMAX_ADDR_IDX:0]];
-    assign dmem_rdata = ext_memory[host_axi_araddr[MEMMAX_ADDR_IDX:0]];
-    assign imem_rdata = ext_memory[imem_axi_araddr[MEMMAX_ADDR_IDX:0]];  // Instruction fetch
+    assign dmem_wdata_read = ext_memory[host_axi_awaddr[MEMMAX_ADDR_IDX:2]];
+    assign dmem_rdata = ext_memory[host_axi_araddr[MEMMAX_ADDR_IDX:2]];
+    assign imem_rdata = ext_memory[imem_axi_araddr[MEMMAX_ADDR_IDX:2]];  // Instruction fetch
 
     //! NOTE: Make sure to add 2 bits here to the host_axi_awaddr so it fits the 32-bit address bus
     //! Probably the best way is to declare host_axi_awaddr_extended with 2 0-bits to the right and n-32-AXI_AWIDTH bits to the left
@@ -51,7 +51,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*
         if (!NRST);
         else
         begin
-            if (host_axi_awready &  host_axi_wvalid & host_axi_awready & host_axi_awvalid)
+            if (dmem_wvalid)
             begin
                 if (host_axi_awaddr == 32'hF0000004)
                 begin
@@ -65,7 +65,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*
                     $finish;
                 end
                 else
-                    ext_memory[host_axi_awaddr[MEMMAX_ADDR_IDX:0]] <= dmem_wdata;
+                    ext_memory[host_axi_awaddr[MEMMAX_ADDR_IDX:2]] <= dmem_wdata;
             end
             else;
          end
@@ -157,7 +157,8 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*
         .AXI_RRESP(host_axi_rresp), .AXI_RVALID(host_axi_rvalid),
         .AXI_RREADY(host_axi_rready),
 
-        .DMEM_RDATA(dmem_rdata), .DMEM_WDATA(dmem_wdata), .DMEM_WDATA_READ(dmem_wdata_read)
+        .DMEM_RDATA(dmem_rdata), .DMEM_WDATA(dmem_wdata), .DMEM_WDATA_READ(dmem_wdata_read),
+        .DMEM_WVALID(dmem_wvalid)
     );
 
 
@@ -174,7 +175,6 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(32),//4*1024*
         .AXI_ARREADY(imem_axi_arready), .AXI_RDATA(imem_axi_rdata),
         .AXI_RRESP(imem_axi_rresp), .AXI_RVALID(imem_axi_rvalid),
         .AXI_RREADY(imem_axi_rready),
-
         .IMEM_RDATA(imem_rdata)
     );
     

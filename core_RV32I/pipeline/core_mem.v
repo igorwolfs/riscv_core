@@ -49,85 +49,33 @@ assign AXI_WSTRB = STRB;
 // AXI WRITE ADDRESS CHANNEL
 // ==========================
 assign AXI_AWADDR = ADDR;
-
-always @(posedge CLK)
-begin
-	if (!NRST)
-		AXI_AWVALID <= 0;
-	else if (C_DOSTORE)
-		begin
-		if (!AXI_AWREADY)
-			AXI_AWVALID <= 1;
-		else if (AXI_AWVALID & AXI_AWREADY)
-			AXI_AWVALID <= 0;
-		else;
-		end
-	else
-		AXI_AWVALID <= 0;
-end
-
-// ==========================
-// AXI WRITE DATA CHANNEL
-// ==========================
-// Set write data according to strobe (data should be shifted to where first strobe occurs)
-// The data to be written is 32-bit aligned, but it is supposed to be written to a non-32bit aligned region
 assign AXI_WDATA = (STRB[0]) ? WDATA : (STRB[1]) ? WDATA << 8 : (STRB[2]) ? WDATA << 16 : WDATA << 24;
 
 always @(posedge CLK)
 begin
 	if (!NRST)
-		AXI_WVALID <= 0;
-	else if (C_DOSTORE)
-		if (!AXI_WREADY)
-			AXI_WVALID <= 1;
-		else if (AXI_WVALID & AXI_WREADY)
-			AXI_WVALID <= 0;
-		else;
-	else
-		AXI_WVALID <= 0;
-end
-// ==========================
-// AXI RESPONSE HANDLING (Receiving the response)
-// ==========================
-
-always @(posedge CLK)
-begin
-	if (!NRST)
-		AXI_BREADY <= 0;
-	else if (C_DOSTORE)
-		if (AXI_WVALID & AXI_AWVALID & AXI_WREADY & AXI_AWREADY & (AXI_BRESP == 2'b00) & AXI_BVALID)
-		begin
-			AXI_BREADY <= 1;
-		end
-		else
-			AXI_BREADY <= 0;
-	else
-		AXI_BREADY <= 0;
-end
-
-// ==========================
-// AXI READ ADDRESS CHANNEL
-// ==========================
-//! WARNING: ASYNCHRONOUS LOGIC HERE
-assign AXI_ARADDR = ADDR;
-always @(posedge CLK)
-begin
-	if (!NRST)
-		AXI_ARVALID <= 0;
-	else if (C_DOLOAD)
 	begin
-		// KEEP READY ASSERTED UNTIL READY HAPPENS => They should stop simultaneously
-		if (!AXI_ARREADY)
-			AXI_ARVALID <= 1;
-		else
-			AXI_ARVALID <= 0;
+		AXI_WVALID <= 0;
+		AXI_AWVALID <= 0;
+		AXI_BREADY <= 0;
+	end
+	else if (C_DOSTORE & !AXI_AWREADY & !AXI_ARREADY & !AXI_BVALID) // No response checking here
+	begin
+		AXI_WVALID <= 1;
+		AXI_AWVALID <= 1;
+		AXI_BREADY <= 1;
 	end
 	else
-		AXI_ARVALID <= 0;
+	begin
+		AXI_BREADY <= 0;
+		AXI_WVALID <= 0;
+		AXI_AWVALID <= 0;
+	end
 end
 
+
 // ==========================
-// AXI READ DATA CHANNEL (Sending the response on succesfull read-data receipt)
+// AXI READ DATA / ADDRESS CHANNEL (Sending the response on succesfull read-data receipt)
 // ==========================
 // READ REGISTER
 reg [31:0] reg_rdata;
@@ -141,28 +89,41 @@ wire [31:0] reg_rdata_sh = (STRB[0]) ? reg_rdata :
 									(STRB[2]) ? reg_rdata >> 16 :
 									reg_rdata >> 24;
 // SET READ DATA
-assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[24]}}, reg_rdata_sh[7:0]} :
-				(ISLOADHWS) ? {{16{reg_rdata_sh[16]}}, reg_rdata_sh[15:0]} :
+assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[7]}}, reg_rdata_sh[7:0]} :
+				(ISLOADHWS) ? {{16{reg_rdata_sh[15]}}, reg_rdata_sh[15:0]} :
 				reg_rdata_sh;
 
+assign AXI_ARADDR = ADDR;
 
 // READ DATA CHANNEL (MASTER)
 always @(posedge CLK)
 begin
 	if (!NRST)
+	begin
+		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
+	end
 	else if (C_DOLOAD)
+	begin
+		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 		begin
-			if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
-				begin
-				AXI_RREADY <= 1;
-				reg_rdata <= AXI_RDATA;
-				end
-			else
-				AXI_RREADY <= 0;
+			AXI_ARVALID <= 1'b0;
+			AXI_RREADY <= 1'b0;
+			reg_rdata <= AXI_RDATA;
 		end
+		else
+		begin
+			AXI_ARVALID <= 1'b1;
+			AXI_RREADY <= 1'b1;
+			reg_rdata <= 32'hDEADBEEF;
+		end
+	end
 	else
-		AXI_RREADY <= 0;
+	begin
+		AXI_ARVALID <= 1'b0;
+		AXI_RREADY <= 1'b0;
+		reg_rdata <= 32'hDEADBEEF;
+	end
 end
 
 
