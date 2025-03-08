@@ -54,7 +54,7 @@ begin
         DMEM_WVALID <= 1'b0;
     end
     // If both the write and the address write channel are valid => Write to memory
-    if (AXI_WVALID & AXI_AWVALID)
+    else if (AXI_WVALID & AXI_AWVALID)
     begin
         if (AXI_AWREADY & AXI_WREADY)
         begin
@@ -119,6 +119,7 @@ begin
         AXI_RDATA <= 32'hDEADBEEF;
         AXI_RVALID <= 1'b0;
         AXI_ARREADY <= 1'b0;
+        AXI_RRESP <= 2'b00;
     end
     else
     begin

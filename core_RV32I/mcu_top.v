@@ -5,15 +5,19 @@ module riscv_mcu
     parameter INT_DMEM_SIZE = 1024 * 16,
     parameter INT_IMEM_SIZE = 1024 * 16,
     parameter AXI_AWIDTH = 4,
-    parameter AXI_DWIDTH = 32
+    parameter AXI_DWIDTH = 32,
+    // UART
+    parameter CLOCK_FREQUENCY = 100_000_000,
+    parameter BAUD_RATE = 115_200,
+    parameter DATA_BITS = 8
 )
 (
     // *** SYSTEM PINS
     input CLK, input NRST,
 
     // *** IO
-    input RX_DSER,
-    output TX_DSER
+    input UART_RX_DSER,
+    output UART_TX_DSER
 );
 
 parameter INT_DMEM_BASE = 0;
@@ -52,12 +56,25 @@ wire imem_axi_rvalid, imem_axi_rready;
 
 // ! ********************* ENTITIES ***************************
 
-
+uart_axi4lite #(.AXI_AWIDTH(AXI_AWIDTH), .AXI_DWIDTH(AXI_DWIDTH), 
+                .CLOCK_FREQUENCY(CLOCK_FREQUENCY), .BAUD_RATE(115_200), .DATA_BITS(DATA_BITS)
+                ) uart_axi4lite_inst (
+                    .AXI_ACLK(host_axi_aclk), .AXI_ARESETN(host_axi_aresetn),
+                    .AXI_AWADDR(host_axi_awaddr), .AXI_AWVALID(host_axi_awvalid),
+                    .AXI_AWREADY(host_axi_awready), .AXI_WDATA(host_axi_wdata),
+                    .AXI_WSTRB(host_axi_wstrb), .AXI_WVALID(host_axi_wvalid),
+                    .AXI_WREADY(host_axi_wready), .AXI_BRESP(host_axi_bresp),
+                    .AXI_BVALID(host_axi_bvalid), .AXI_BREADY(host_axi_bready),
+                    .AXI_ARADDR(host_axi_araddr), .AXI_ARVALID(host_axi_arvalid),
+                    .AXI_ARREADY(host_axi_arready), .AXI_RDATA(host_axi_rdata),
+                    .AXI_RRESP(host_axi_rresp), .AXI_RVALID(host_axi_rvalid),
+                    .AXI_RREADY(host_axi_rready), .TX_DSER(UART_TX_DSER),
+                    .RX_DSER(UART_RX_DSER)
+                );
 // *** Internal Data Memory ***
 dmemory #(
     .INT_DMEM_SIZE(INT_DMEM_SIZE),
-    .AXI_AWIDTH(AXI_AWIDTH),
-    .AXI_DWIDTH(AXI_DWIDTH)
+    .AXI_AWIDTH(AXI_AWIDTH), .AXI_DWIDTH(AXI_DWIDTH)
 ) dmem_inst (
     .AXI_ACLK(host_axi_aclk),
     .AXI_ARESETN(host_axi_aresetn),
@@ -133,5 +150,7 @@ core_top #(
     .IMEM_AXI_RVALID(imem_axi_rvalid),
     .IMEM_AXI_RREADY(imem_axi_rready)
 );
+
+
 
 endmodule

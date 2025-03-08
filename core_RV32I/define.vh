@@ -101,6 +101,8 @@
 `define WB_CODE_LUI			6
 `define WB_CODE_AUIPC		7
 `define WB_CODE_ALU			8
+
+
 /**
 For PC and regwrite purposes
 - WRITE TO REGISTER: Switch-case in top_cpu that

@@ -75,7 +75,6 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8),//4*
     always #5 sysclk = ~sysclk;
 
     // **** CORE ****
-
     core_top #(
         .AXI_AWIDTH(AXI_AWIDTH),
         .AXI_DWIDTH(AXI_DWIDTH)
