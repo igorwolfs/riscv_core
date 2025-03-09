@@ -1,8 +1,9 @@
 CPU_DIR := ../core_RV32I/
+VHDL_LIBS := ../vhdl_libs/
 TESTBENCH_NAME := top_tb
 
 #! NOTE: "find -name ''" looks for files recursively inside the SRC_DIR
-SRC_DIRS := ${CPU_DIR}
+SRC_DIRS := ${CPU_DIR} ${VHDL_LIBS}
 SRC_FILE := $(shell find $(SRC_DIRS) -name '*.v') $(shell find $(SRC_DIRS) -name '*.sv') \
 			$(shell find $(SRC_DIRS) -name '*.vh') $(shell find $(SRC_DIRS) -name '*.svh')
 
@@ -17,6 +18,9 @@ endif
 # Verilator options
 VERILATOR_OPTS = -cc \
     -Wno-PINMISSING \
+    -Wno-ASSIGNIN \
+    -Wno-UNSIGNED \
+    -Wno-WIDTHEXPAND\
     --exe \
     --trace \
     --trace-structs \
@@ -27,6 +31,7 @@ VERILATOR_OPTS = -cc \
  # -Wno-MODDUP \
  # -Wno-COMBDLY \
  # -Wno-NULLPORT \
+ # -Wno-WIDTHEXPAND\ #! WARNING: This is a very risky macro to ignore, be VERY CERTAIN when using it.
  # -Wno-UNOPTFLAT
 
 .PHONY: run clean

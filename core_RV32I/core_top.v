@@ -3,7 +3,7 @@
 `include "define.vh"
 
 module core_top #(
-    parameter AXI_AWIDTH = 4,
+    parameter AXI_AWIDTH = 32,
     parameter AXI_DWIDTH = 32
 ) (
     // SYSTEM

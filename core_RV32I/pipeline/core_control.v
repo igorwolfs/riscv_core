@@ -48,13 +48,13 @@ module core_control #(
     input HOST_AXI_BREADY,
 
     // *** CONTROL SIGNALS
-    output reg   C_INSTR_FETCH,
-    output reg   C_PC_UPDATE,
+    output reg      C_INSTR_FETCH,
+    output reg      C_PC_UPDATE,
     output reg [3:0] C_WB_CODE,
-    output reg    C_REG_AWVALID,
-    output reg   C_DOLOAD,
-    output reg   C_DOSTORE,
-    output reg   C_ALU
+    output reg      C_REG_AWVALID,
+    output reg      C_DOLOAD,
+    output reg      C_DOSTORE,
+    output reg      C_ALU
 );
 
   // DECODER SIGNALS;

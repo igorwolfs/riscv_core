@@ -6,7 +6,7 @@ Disassembly of section .text:
 
 00000000 <init_stack>:
    0:	400002b7          	lui	t0,0x40000
-   4:	fff28293          	addi	t0,t0,-1 # 3fffffff <_end+0x3fffff93>
+   4:	fff28293          	addi	t0,t0,-1 # 3fffffff <_end+0x3fffff8b>
    8:	00028113          	mv	sp,t0
    c:	008000ef          	jal	14 <main>
   10:	00000013          	nop
@@ -28,11 +28,13 @@ Disassembly of section .text:
   40:	00112623          	sw	ra,12(sp)
   44:	00812423          	sw	s0,8(sp)
   48:	01010413          	addi	s0,sp,16
-  4c:	f00002b7          	lui	t0,0xf0000
-  50:	00428293          	addi	t0,t0,4 # f0000004 <_end+0xefffff98>
-  54:	0052a023          	sw	t0,0(t0)
-  58:	00000013          	nop
-  5c:	00c12083          	lw	ra,12(sp)
-  60:	00812403          	lw	s0,8(sp)
-  64:	01010113          	addi	sp,sp,16
-  68:	00008067          	ret
+  4c:	f0000337          	lui	t1,0xf0000
+  50:	00632023          	sw	t1,0(t1) # f0000000 <_end+0xefffff8c>
+  54:	f00002b7          	lui	t0,0xf0000
+  58:	00428293          	addi	t0,t0,4 # f0000004 <_end+0xefffff90>
+  5c:	0052a023          	sw	t0,0(t0)
+  60:	00000013          	nop
+  64:	00c12083          	lw	ra,12(sp)
+  68:	00812403          	lw	s0,8(sp)
+  6c:	01010113          	addi	sp,sp,16
+  70:	00008067          	ret

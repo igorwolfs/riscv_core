@@ -2,6 +2,29 @@
 
 // 1 MB: 0b1111_11111111_11111111 = 20 bits = 0xFFFFF
 
+module top_tb ();
+
+//! >>> TEST
+reg NRST = 1, CLK = 0;
+
+initial
+begin
+    NRST = 0;
+    #15;
+    NRST = 1;
+    #100;
+end
+
+always #5 CLK = ~CLK; //255  65536*8
+riscv_mcu #(.INT_MEM_SIZE(65536*8), .AXI_AWIDTH(32), .AXI_DWIDTH(32)) riscv_mcu_inst ( 
+   .CLK(CLK),
+   .NRST(NRST));
+
+//! <<< TEST
+endmodule
+
+/*
+
 module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8),//4*1024*1024 // 16 MB of memory
     parameter AXI_AWIDTH=32, parameter AXI_DWIDTH=32); // 4 MB (in bytes)
     // Check addressing bits required (equal to 2 + the memory size (2 due to array size being 32-bits each))
@@ -41,11 +64,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8),//4*
     //! NOTE: Make sure to add 2 bits here to the host_axi_awaddr so it fits the 32-bit address bus
     //! Probably the best way is to declare host_axi_awaddr_extended with 2 0-bits to the right and n-32-AXI_AWIDTH bits to the left
     // WRONG: apparently the AXI bus needs to be 32-bits everywhere since it needs to be able to pass addresses like 0xF0000000.
-    /**
-    Memory write logic will require
-    - an input signal (read from the write address)
-    - an output signal (write to the write address-input with strobe enabled)
-    */
+
     always @(posedge sysclk)
     begin
         if (!NRST);
@@ -178,6 +197,7 @@ module top_tb #(parameter INTERNAL_MEMORY=1'b0, parameter MEMSIZE=(65536*8),//4*
     );
     
 endmodule
+*/
 
 /**
 Could I integrate the dmemory and imemory module in here?
