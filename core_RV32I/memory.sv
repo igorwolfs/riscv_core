@@ -1,5 +1,7 @@
 `timescale 1ns/10ps
 
+// `define TEST_ENABLED
+
 module memory #(parameter INT_MEM_SIZE = 256,
             parameter AXI_AWIDTH = 4,
             parameter AXI_DWIDTH = 32)
@@ -33,17 +35,7 @@ module memory #(parameter INT_MEM_SIZE = 256,
 
 parameter MEMMAX_ADDR_IDX = $clog2(INT_MEM_SIZE) + 1;
 
-reg [31:0] ram[0:INT_MEM_SIZE-1];
-
-string mem_path;
-initial begin
-    $display("Initializing memory module");
-    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
-        $readmemh(mem_path, ram);    //"/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
-                                    //  "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
-    $display("Memory module initialized");
-end
-
+reg [31:0] ram [0:INT_MEM_SIZE-1];
 // ==========================================
 // WRITE RESPONSE / DATA / ADDRESS CHANNEL
 // ==========================================
@@ -61,7 +53,6 @@ begin
     begin
         if (AXI_AWREADY & AXI_WREADY)
         begin
-            AXI_RDATA <= 32'hDEADBEEF;
             AXI_AWREADY <= 1'b0;
             AXI_WREADY <= 1'b0;
             AXI_BVALID <= 1'b0;
@@ -126,5 +117,23 @@ begin
         end
     end
 end
+
+
+
+`ifdef TEST_ENABLED
+string mem_path;
+initial
+begin
+    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
+        $readmemh(mem_path, ram);    //"/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
+                                    //  "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
+    $display("Memory module initialized");
+end
+`else
+initial begin
+    $readmemh("/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/uart_physical_test/my.hex", ram);
+end
+`endif
+
 
 endmodule

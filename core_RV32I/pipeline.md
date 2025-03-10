@@ -63,6 +63,19 @@
 
 4->0
 - pc_increment (default value)
+- 
+
+## JAL(R)
+0. Instructino fetch
+
+1. Instruction decode
+
+4. Branch WB
+4->0
+DEPENDING ON INSTRUCTION
+- JAL: immediate added to PC
+- JALR: immediate + reg_rdata1 set equal to PC
+- PC+4 written to regwrite 
 
 
 ### ISSUES:
@@ -74,14 +87,11 @@
 - While the registers are still dispersed everywhere
 	- Keep the instruction and everything else latched until the next instruction comes through the axi bus
 	- Later centralize everything in multiple registers once you start pipelining.
-
+- JAL(R) issues
+	- When a JAL(R) instruction comes, the PC can't continue where it's at, It can
+		- Stall the pipeline
+		- Add an extra data-path directly decoding the JAL(R) immediate and adding it to the PC in the same clock-cycle
+So for now:
+- Implement simple pipelining with flushing in case of branch / mechanisms 
 
 # ISSUES
-TODO:
-- sll
-	difference outcome ONLY test_inst_2:
-	- 00000000
-	- f0000000
-- sra
-- srai
-- srl
