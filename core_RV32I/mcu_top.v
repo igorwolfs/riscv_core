@@ -2,23 +2,25 @@
 
 module riscv_mcu
 #(
-    parameter INT_MEM_SIZE = 1024 * 16,
+    parameter INT_MEM_SIZE = 64,
     parameter AXI_AWIDTH = 32,
     parameter AXI_DWIDTH = 32,
+
     // UART
     parameter CLOCK_FREQUENCY = 100_000_000,
     parameter BAUD_RATE = 115_200,
     parameter DATA_BITS = 8,
 
-    parameter S0_EN = 1, // MEMORY
-    parameter S1_EN = 0, // UART
-    parameter S2_EN = 1, // TEST
-    parameter ADDR_RANGE0_START = 32'h00000000,
-    parameter ADDR_RANGE0_END = 32'h3FFFFFFF,
-    parameter ADDR_RANGE1_START = 32'h40000000,
-    parameter ADDR_RANGE1_END = 32'h4000000f,
-    parameter ADDR_RANGE2_START = 32'hF0000000, // END SIM / WRITE TO FILE
-    parameter ADDR_RANGE2_END = 32'hF0000007
+    // Peripheral interfaces + Address Ss
+    parameter S0_EN = 1'b1, // MEMORY
+    parameter S1_EN = 1'b1, // UART
+    parameter S2_EN = 1'b1, // TEST
+    parameter ADDR_S0_START = 32'h00000000,
+    parameter ADDR_S0_END = 32'h3FFFFFF0,
+    parameter ADDR_S1_START = 32'h40000000,
+    parameter ADDR_S1_END = 32'h4000000F,
+    parameter ADDR_S2_START = 32'hF0000000, // END SIM / WRITE TO FILE
+    parameter ADDR_S2_END = 32'hF0000007
 )
 (
     // *** SYSTEM PINS
@@ -196,12 +198,12 @@ bus_interconnect #(
     .S0_EN(S0_EN),
     .S1_EN(S1_EN),
     .S2_EN(S2_EN),
-    .ADDR_RANGE0_START(ADDR_RANGE0_START),
-    .ADDR_RANGE0_END(ADDR_RANGE0_END),
-    .ADDR_RANGE1_START(ADDR_RANGE1_START),
-    .ADDR_RANGE1_END(ADDR_RANGE1_END),
-    .ADDR_RANGE2_START(ADDR_RANGE2_START), // END SIM / WRITE TO FILE
-    .ADDR_RANGE2_END(ADDR_RANGE2_END)
+    .ADDR_S0_START(ADDR_S0_START),
+    .ADDR_S0_END(ADDR_S0_END),
+    .ADDR_S1_START(ADDR_S1_START),
+    .ADDR_S1_END(ADDR_S1_END),
+    .ADDR_S2_START(ADDR_S2_START), // END SIM / WRITE TO FILE
+    .ADDR_S2_END(ADDR_S2_END)
 
 ) bus_interconnect_inst (
     .ACLK(host_axi_aclk),
@@ -309,92 +311,92 @@ bus_interconnect #(
 // ================================================================
 
 // *** MEMORY ***
-// ADDR RANGE 32h00000000-32h3ffffffff
-    memory #(
-        .INT_MEM_SIZE(INT_MEM_SIZE),
-        .AXI_AWIDTH(AXI_AWIDTH),
-        .AXI_DWIDTH(AXI_DWIDTH)
-    ) memory_inst (
-        .AXI_ACLK(s0_axi_aclk),
-        .AXI_ARESETN(s0_axi_aresetn),
-        .AXI_AWADDR(s0_axi_awaddr),
-        .AXI_AWVALID(s0_axi_awvalid),
-        .AXI_AWREADY(s0_axi_awready),
-        .AXI_WDATA(s0_axi_wdata),
-        .AXI_WSTRB(s0_axi_wstrb),
-        .AXI_WVALID(s0_axi_wvalid),
-        .AXI_WREADY(s0_axi_wready),
-        .AXI_BRESP(s0_axi_bresp),
-        .AXI_BVALID(s0_axi_bvalid),
-        .AXI_BREADY(s0_axi_bready),
-        .AXI_ARADDR(s0_axi_araddr),
-        .AXI_ARVALID(s0_axi_arvalid),
-        .AXI_ARREADY(s0_axi_arready),
-        .AXI_RDATA(s0_axi_rdata),
-        .AXI_RRESP(s0_axi_rresp),
-        .AXI_RVALID(s0_axi_rvalid),
-        .AXI_RREADY(s0_axi_rready)
-    );
+// ADDR S 32h00000000-32h3ffffffff
+memory #(
+    .INT_MEM_SIZE(INT_MEM_SIZE),
+    .AXI_AWIDTH(AXI_AWIDTH),
+    .AXI_DWIDTH(AXI_DWIDTH)
+) memory_inst (
+    .AXI_ACLK(s0_axi_aclk),
+    .AXI_ARESETN(s0_axi_aresetn),
+    .AXI_AWADDR(s0_axi_awaddr),
+    .AXI_AWVALID(s0_axi_awvalid),
+    .AXI_AWREADY(s0_axi_awready),
+    .AXI_WDATA(s0_axi_wdata),
+    .AXI_WSTRB(s0_axi_wstrb),
+    .AXI_WVALID(s0_axi_wvalid),
+    .AXI_WREADY(s0_axi_wready),
+    .AXI_BRESP(s0_axi_bresp),
+    .AXI_BVALID(s0_axi_bvalid),
+    .AXI_BREADY(s0_axi_bready),
+    .AXI_ARADDR(s0_axi_araddr),
+    .AXI_ARVALID(s0_axi_arvalid),
+    .AXI_ARREADY(s0_axi_arready),
+    .AXI_RDATA(s0_axi_rdata),
+    .AXI_RRESP(s0_axi_rresp),
+    .AXI_RVALID(s0_axi_rvalid),
+    .AXI_RREADY(s0_axi_rready)
+);
 
 // *** UART ***
-// ADDR RANGE 32h40000000-32h5ffffffff
-    uart_axi4lite #(
-        .AXI_AWIDTH(AXI_AWIDTH), 
-        .AXI_DWIDTH(AXI_DWIDTH), 
-        .CLOCK_FREQUENCY(CLOCK_FREQUENCY), 
-        .BAUD_RATE(115_200), 
-        .DATA_BITS(DATA_BITS)
-    ) uart_axi4lite_inst (
-        .AXI_ACLK(s1_axi_aclk), 
-        .AXI_ARESETN(s1_axi_aresetn),
-        .AXI_AWADDR(s1_axi_awaddr),
-        .AXI_AWVALID(s1_axi_awvalid),
-        .AXI_AWREADY(s1_axi_awready),
-        .AXI_WDATA(s1_axi_wdata),
-        .AXI_WSTRB(s1_axi_wstrb),
-        .AXI_WVALID(s1_axi_wvalid),
-        .AXI_WREADY(s1_axi_wready),
-        .AXI_BRESP(s1_axi_bresp),
-        .AXI_BVALID(s1_axi_bvalid), 
-        .AXI_BREADY(s1_axi_bready),
-        .AXI_ARADDR(s1_axi_araddr), 
-        .AXI_ARVALID(s1_axi_arvalid),
-        .AXI_ARREADY(s1_axi_arready), 
-        .AXI_RDATA(s1_axi_rdata),
-        .AXI_RRESP(s1_axi_rresp), 
-        .AXI_RVALID(s1_axi_rvalid),
-        .AXI_RREADY(s1_axi_rready), 
-        .TX_DSER(UART_TX_DSER),
-        .RX_DSER(UART_RX_DSER)
-    );
+// ADDR S 32h40000000-32h5ffffffff
+uart_axi4lite #(
+    .AXI_AWIDTH(AXI_AWIDTH), 
+    .AXI_DWIDTH(AXI_DWIDTH), 
+    .CLOCK_FREQUENCY(CLOCK_FREQUENCY), 
+    .BAUD_RATE(115_200), 
+    .DATA_BITS(DATA_BITS)
+) uart_axi4lite_inst (
+    .AXI_ACLK(s1_axi_aclk), 
+    .AXI_ARESETN(s1_axi_aresetn),
+    .AXI_AWADDR(s1_axi_awaddr),
+    .AXI_AWVALID(s1_axi_awvalid),
+    .AXI_AWREADY(s1_axi_awready),
+    .AXI_WDATA(s1_axi_wdata),
+    .AXI_WSTRB(s1_axi_wstrb),
+    .AXI_WVALID(s1_axi_wvalid),
+    .AXI_WREADY(s1_axi_wready),
+    .AXI_BRESP(s1_axi_bresp),
+    .AXI_BVALID(s1_axi_bvalid), 
+    .AXI_BREADY(s1_axi_bready),
+    .AXI_ARADDR(s1_axi_araddr), 
+    .AXI_ARVALID(s1_axi_arvalid),
+    .AXI_ARREADY(s1_axi_arready), 
+    .AXI_RDATA(s1_axi_rdata),
+    .AXI_RRESP(s1_axi_rresp), 
+    .AXI_RVALID(s1_axi_rvalid),
+    .AXI_RREADY(s1_axi_rready), 
+    .TX_DSER(UART_TX_DSER),
+    .RX_DSER(UART_RX_DSER)
+);
 
 // *** AXI File Handler ***
-// ADDR RANGE 32h60000000-32h6ffffffff
-    axi_file_handler #(
-        .ADDR_WRITE_TO_FILE(32'hf0000000),
-        .ADDR_STOP_SIM(32'hf0000004),
-        .AXI_AWIDTH(AXI_AWIDTH),
-        .AXI_DWIDTH(AXI_DWIDTH)
-        ) axi_file_handler_inst (
-            .AXI_ACLK(s2_axi_aclk),
-            .AXI_ARESETN(s2_axi_aresetn),
-            .AXI_AWADDR(s2_axi_awaddr),
-            .AXI_AWVALID(s2_axi_awvalid),
-            .AXI_AWREADY(s2_axi_awready),
-            .AXI_WDATA(s2_axi_wdata),
-            .AXI_WSTRB(s2_axi_wstrb),
-            .AXI_WVALID(s2_axi_wvalid),
-            .AXI_WREADY(s2_axi_wready),
-            .AXI_BRESP(s2_axi_bresp),
-            .AXI_BVALID(s2_axi_bvalid),
-            .AXI_BREADY(s2_axi_bready),
-            .AXI_ARADDR(s2_axi_araddr),
-            .AXI_ARVALID(s2_axi_arvalid),
-            .AXI_ARREADY(s2_axi_arready),
-            .AXI_RDATA(s2_axi_rdata),
-            .AXI_RRESP(s2_axi_rresp),
-            .AXI_RVALID(s2_axi_rvalid),
-            .AXI_RREADY(s2_axi_rready)
-        );
+// ADDR S 32h60000000-32h6ffffffff
+axi_file_handler #(
+    .ADDR_WRITE_TO_FILE(32'hf0000000),
+    .ADDR_STOP_SIM(32'hf0000004),
+    .AXI_AWIDTH(AXI_AWIDTH),
+    .AXI_DWIDTH(AXI_DWIDTH)
+    ) axi_file_handler_inst (
+        .AXI_ACLK(s2_axi_aclk),
+        .AXI_ARESETN(s2_axi_aresetn),
+        .AXI_AWADDR(s2_axi_awaddr),
+        .AXI_AWVALID(s2_axi_awvalid),
+        .AXI_AWREADY(s2_axi_awready),
+        .AXI_WDATA(s2_axi_wdata),
+        .AXI_WSTRB(s2_axi_wstrb),
+        .AXI_WVALID(s2_axi_wvalid),
+        .AXI_WREADY(s2_axi_wready),
+        .AXI_BRESP(s2_axi_bresp),
+        .AXI_BVALID(s2_axi_bvalid),
+        .AXI_BREADY(s2_axi_bready),
+        .AXI_ARADDR(s2_axi_araddr),
+        .AXI_ARVALID(s2_axi_arvalid),
+        .AXI_ARREADY(s2_axi_arready),
+        .AXI_RDATA(s2_axi_rdata),
+        .AXI_RRESP(s2_axi_rresp),
+        .AXI_RVALID(s2_axi_rvalid),
+        .AXI_RREADY(s2_axi_rready)
+    );
 
 endmodule

@@ -45,9 +45,11 @@ string sig_path;
 initial
 begin
     $display("Initializing sigwrite module");
-    if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.sig";
+    if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.sig";
+    // "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.sig";
+    // "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.sig";
 	file = $fopen(sig_path, "w");
-	if (file == 0) 
+	if (file == 0)
 	begin
 		$display("Error: Could not open file %s for writing", sig_path);
 		$finish;
@@ -86,6 +88,7 @@ begin
                 begin
                     $display("WRITING TO FILE!\r\n");
 					$fwrite(file, "%h\n", AXI_WDATA);
+					$fwrite(file, "%c\n", AXI_WDATA);
                 end 
                 else if (AXI_AWADDR == ADDR_STOP_SIM)
                 begin

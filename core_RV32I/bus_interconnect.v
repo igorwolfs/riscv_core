@@ -6,12 +6,12 @@ module bus_interconnect #(
 	parameter S0_EN = 1'b1,
 	parameter S1_EN = 1'b1,
 	parameter S2_EN = 1'b1,
-	parameter ADDR_RANGE0_START = 32'h00000000,
-	parameter ADDR_RANGE0_END   = 32'h3FFFFFFF,
-	parameter ADDR_RANGE1_START = 32'h40000000,
-	parameter ADDR_RANGE1_END   = 32'h5FFFFFFF,
-	parameter ADDR_RANGE2_START = 32'hF0000000, // END SIM / WRITE TO FILE
-	parameter ADDR_RANGE2_END 	= 32'hF0000007
+	parameter ADDR_S0_START = 32'h00000000,
+	parameter ADDR_S0_END   = 32'h3FFFFFFF,
+	parameter ADDR_S1_START = 32'h40000000,
+	parameter ADDR_S1_END   = 32'h4000000F,
+	parameter ADDR_S2_START = 32'hF0000000, // END SIM / WRITE TO FILE
+	parameter ADDR_S2_END 	= 32'hF0000007
 )(
 	input wire          ACLK,
 	input wire          ARESETN,
@@ -180,15 +180,15 @@ module bus_interconnect #(
 			begin
 				SM_mux_mwrite <= H_MUX;
 				// MUX TO SLAVES TO H
-				if ((H_AWADDR >= ADDR_RANGE0_START) && (H_AWADDR <= ADDR_RANGE0_END) && S0_EN)
+				if ((H_AWADDR >= ADDR_S0_START) && (H_AWADDR <= ADDR_S0_END) && S0_EN)
 				begin
 					SM_mux_swrite <= S0_MUX;
 				end
-				else if ((H_AWADDR >= ADDR_RANGE1_START) && (H_AWADDR <= ADDR_RANGE1_END) && S1_EN)
+				else if ((H_AWADDR >= ADDR_S1_START) && (H_AWADDR <= ADDR_S1_END) && S1_EN)
 				begin
 					SM_mux_swrite <= S1_MUX;
 				end
-				else if ((H_AWADDR >= ADDR_RANGE2_START) && (H_AWADDR <= ADDR_RANGE2_END) && S2_EN)
+				else if ((H_AWADDR >= ADDR_S2_START) && (H_AWADDR <= ADDR_S2_END) && S2_EN)
 				begin
 					SM_mux_swrite <= S2_MUX;
 				end
@@ -197,15 +197,15 @@ module bus_interconnect #(
 			begin
 				SM_mux_mwrite <= IMEM_MUX;
 				// MUX SLAVES TO IMEM
-				if ((IMEM_AWADDR >= ADDR_RANGE0_START) && (IMEM_AWADDR <= ADDR_RANGE0_END) && S0_EN)
+				if ((IMEM_AWADDR >= ADDR_S0_START) && (IMEM_AWADDR <= ADDR_S0_END) && S0_EN)
 				begin
 					SM_mux_swrite <= S0_MUX;
 				end
-				else if ((IMEM_AWADDR >= ADDR_RANGE1_START) && (IMEM_AWADDR <= ADDR_RANGE1_END) && S1_EN)
+				else if ((IMEM_AWADDR >= ADDR_S1_START) && (IMEM_AWADDR <= ADDR_S1_END) && S1_EN)
 				begin
 					SM_mux_swrite <= S1_MUX;
 				end
-				else if ((IMEM_AWADDR >= ADDR_RANGE2_START) && (IMEM_AWADDR <= ADDR_RANGE2_END) && S2_EN)
+				else if ((IMEM_AWADDR >= ADDR_S2_START) && (IMEM_AWADDR <= ADDR_S2_END) && S2_EN)
 				begin
 					SM_mux_swrite <= S2_MUX;
 				end
@@ -214,15 +214,15 @@ module bus_interconnect #(
 			begin
 				SM_mux_mwrite <= H_MUX;
 				// MUX TO H BY DEFAULT
-				if ((H_AWADDR >= ADDR_RANGE0_START) && (H_AWADDR <= ADDR_RANGE0_END) && S0_EN)
+				if ((H_AWADDR >= ADDR_S0_START) && (H_AWADDR <= ADDR_S0_END) && S0_EN)
 				begin
 					SM_mux_swrite <= S0_MUX;
 				end
-				else if ((H_AWADDR >= ADDR_RANGE1_START) && (H_AWADDR <= ADDR_RANGE1_END) && S1_EN)
+				else if ((H_AWADDR >= ADDR_S1_START) && (H_AWADDR <= ADDR_S1_END) && S1_EN)
 				begin
 					SM_mux_swrite <= S1_MUX;
 				end
-				else if ((H_AWADDR >= ADDR_RANGE2_START) && (H_AWADDR <= ADDR_RANGE2_END) && S2_EN)
+				else if ((H_AWADDR >= ADDR_S2_START) && (H_AWADDR <= ADDR_S2_END) && S2_EN)
 				begin
 					SM_mux_swrite <= S2_MUX;
 				end
@@ -248,15 +248,15 @@ module bus_interconnect #(
 			if (IMEM_ARVALID & IMEM_RREADY)
 			begin
 				SM_mux_mread <= IMEM_MUX;
-				if (IMEM_ARADDR >= ADDR_RANGE0_START && IMEM_ARADDR <= ADDR_RANGE0_END)
+				if (IMEM_ARADDR >= ADDR_S0_START && IMEM_ARADDR <= ADDR_S0_END)
 				begin
 					SM_mux_sread <= S0_MUX;
 				end
-				else if (IMEM_ARADDR >= ADDR_RANGE1_START && IMEM_ARADDR <= ADDR_RANGE1_END)
+				else if (IMEM_ARADDR >= ADDR_S1_START && IMEM_ARADDR <= ADDR_S1_END)
 				begin
 					SM_mux_sread <= S1_MUX;
 				end
-				else if (IMEM_ARADDR >= ADDR_RANGE2_START && IMEM_ARADDR <= ADDR_RANGE2_END)
+				else if (IMEM_ARADDR >= ADDR_S2_START && IMEM_ARADDR <= ADDR_S2_END)
 				begin
 					SM_mux_sread <= S2_MUX;
 				end
@@ -264,15 +264,15 @@ module bus_interconnect #(
 			else if (H_ARVALID & H_RREADY)
 			begin
 				SM_mux_mread <= H_MUX;
-				if (H_ARADDR >= ADDR_RANGE0_START && H_ARADDR <= ADDR_RANGE0_END)
+				if (H_ARADDR >= ADDR_S0_START && H_ARADDR <= ADDR_S0_END)
 				begin
 					SM_mux_sread <= S0_MUX;
 				end
-				else if (H_ARADDR >= ADDR_RANGE1_START && H_ARADDR <= ADDR_RANGE1_END)
+				else if (H_ARADDR >= ADDR_S1_START && H_ARADDR <= ADDR_S1_END)
 				begin
 					SM_mux_sread <= S1_MUX;
 				end
-				else if (H_ARADDR >= ADDR_RANGE2_START && H_ARADDR <= ADDR_RANGE2_END)
+				else if (H_ARADDR >= ADDR_S2_START && H_ARADDR <= ADDR_S2_END)
 				begin
 					SM_mux_sread <= S2_MUX;
 				end
@@ -280,15 +280,15 @@ module bus_interconnect #(
 			else
 			begin
 				SM_mux_mread <= IMEM_MUX;
-				if (IMEM_ARADDR >= ADDR_RANGE0_START && IMEM_ARADDR <= ADDR_RANGE0_END)
+				if (IMEM_ARADDR >= ADDR_S0_START && IMEM_ARADDR <= ADDR_S0_END)
 				begin
 					SM_mux_sread <= S0_MUX;
 				end
-				else if (IMEM_ARADDR >= ADDR_RANGE1_START && IMEM_ARADDR <= ADDR_RANGE1_END)
+				else if (IMEM_ARADDR >= ADDR_S1_START && IMEM_ARADDR <= ADDR_S1_END)
 				begin
 					SM_mux_sread <= S1_MUX;
 				end
-				else if (IMEM_ARADDR >= ADDR_RANGE2_START && IMEM_ARADDR <= ADDR_RANGE2_END)
+				else if (IMEM_ARADDR >= ADDR_S2_START && IMEM_ARADDR <= ADDR_S2_END)
 				begin
 					SM_mux_sread <= S2_MUX;
 				end
@@ -390,6 +390,8 @@ module bus_interconnect #(
 					   (SM_mux_swrite == S1_MUX) ? S1_BVALID :
 					   (SM_mux_swrite == S2_MUX) ? S2_BVALID : 1'b0;
 	 
+	assign m_bready = (SM_mux_mwrite == H_MUX) ? H_BREADY : IMEM_BREADY;
+
 	assign S0_BREADY = (SM_mux_swrite == S0_MUX) ? m_bready : 1'b0;
 	assign S1_BREADY = (SM_mux_swrite == S1_MUX) ? m_bready : 1'b0;
 	assign S2_BREADY = (SM_mux_swrite == S2_MUX) ? m_bready : 1'b0;

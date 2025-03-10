@@ -16,9 +16,14 @@ begin
 end
 
 always #5 CLK = ~CLK; //255  65536*8
-riscv_mcu #(.INT_MEM_SIZE(65536*8), .AXI_AWIDTH(32), .AXI_DWIDTH(32)) riscv_mcu_inst ( 
-   .CLK(CLK),
-   .NRST(NRST));
+wire UART_TX_DSER, UART_RX_DSER;
+assign UART_RX_DSER = UART_TX_DSER;
+    riscv_mcu #(.INT_MEM_SIZE(128), .AXI_AWIDTH(32), .AXI_DWIDTH(32)) riscv_mcu_inst (
+    .CLK(CLK),
+    .NRST(NRST),
+    .UART_TX_DSER(UART_TX_DSER),
+    .UART_RX_DSER(UART_RX_DSER)
+   );
 
 //! <<< TEST
 endmodule

@@ -38,9 +38,9 @@ reg [31:0] ram[0:INT_MEM_SIZE-1];
 string mem_path;
 initial begin
     $display("Initializing memory module");
-    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
+    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
         $readmemh(mem_path, ram);    //"/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
-
+                                    //  "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
     $display("Memory module initialized");
 end
 
