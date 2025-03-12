@@ -1,5 +1,5 @@
 # Pipelining
-## ALU instruction
+## ALU R instruction
 0. Instruction fetch
 	- Get AXI_RDATA
 0->1
@@ -10,8 +10,42 @@
 		- reg1_read, reg2_read
 1->2
 - reg1_read, reg2_read latched in register for next
-- Immediate, funct3, funct7, regwrite_addr, opcode
-	
+- funct3, funct7, opcode (needed only in next stage)
+- regwrite_addr (needed at wb-stage)
+
+2. EXEC
+	- Combinatorial 
+		- calu val decode from funct, imm, opcode
+		- Combinatorial setting alui1, alui2
+2->4
+- alu-enable to latch alu_out (needed only in next stage)
+
+4. WB
+	- combinatorial
+		- set pc_increment
+		- set value to be written to register
+4->0
+- regwrite
+- pc_increment
+
+### ISSUES:
+- Register write value is latched in 1->2 but only used in 4->0
+	- It should be latched until the pipeline's done
+
+## ALU I instruction
+0. Instruction fetch
+	- Get AXI_RDATA
+0->1
+- Instruction-latched (INSTRUCTION <= AXI_RDATA)
+
+1. Instruction decode:
+	- Combinatorial
+		- reg1_read, reg2_read
+1->2
+- reg1_read, reg2_read latched in register for next
+- Immediate, funct3, funct7, opcode
+- regwrite_addr (needed at wb-stage)
+
 2. EXEC
 	- Combinatorial 
 		- calu val decode from funct, imm, opcode
@@ -31,25 +65,61 @@
 - Register write value is latched in 1->2 but only used in 4->0
 	- It should be latched until the pipeline's done
 
-## Store instruction
+## Load instruction
 0. Instruction fetch
 	- Get AXI_RDATA
 0->1
-- Instruction-latched (INSTRUCTION <= AXI_RDATA)
+- Instruction-latched, FUNCT3, FUNCT7 (only for next)
 
 1. Instruction decode:
 	- Combinatorial
 		- reg1_read, reg2_read
 1->2
 - reg1_read, reg2_read latched in register for next
-- Immediate, funct3, funct7, regwrite_addr, opcode
-
+- Immediate funct3, funct7, regwrite_addr, opcode
 2. EXEC
 	- Combinatorial
 		- determine dmem_araddr, loadbs, loadhws, strb
 
-2->3 
-- Latch dmem_araddr, loadbs, loadhws, strb
+2->3
+- dmem_araddr, loadbs, loadhws, strb
+- reg1_read, reg2_read: stored until memory stage from execution stage
+	- Possible hazards here when reg1_write / reg2_write didn't yet happen
+
+3. MEM
+	- Combinatorially: 
+		- set dmem_addr to axxi_awaddr
+		- set strb
+3->4:
+- nothing
+
+4. WB
+- 
+
+4->0
+- pc_increment (default value)
+
+
+## Store instruction
+0. Instruction fetch
+	- Get AXI_RDATA
+0->1
+- Instruction-latched, FUNCT3, FUNCT7 (only for next)
+
+1. Instruction decode:
+	- Combinatorial
+		- reg1_read, reg2_read
+1->2
+- reg1_read, reg2_read latched in register for next
+- Immediate funct3, funct7, regwrite_addr, opcode
+2. EXEC
+	- Combinatorial
+		- determine dmem_araddr, loadbs, loadhws, strb
+
+2->3
+- dmem_araddr, loadbs, loadhws, strb
+- reg1_read, reg2_read: stored until memory stage from execution stage
+	- Possible hazards here when reg1_write didn't yet happen
 
 3. MEM
 	- Combinatorially: 
@@ -65,10 +135,43 @@
 - pc_increment (default value)
 - 
 
+## Branch
+0. Instruction fetch
+	- Get AXI_RDATA
+0->1
+- Instruction-latched (INSTRUCTION <= AXI_RDATA)
+
+1. Instruction decode:
+	- Combinatorial
+		- reg1_read, reg2_read
+1->2
+- reg1_read, reg2_read latched in register for next
+- funct3, funct7, opcode (needed only in next stage)
+- immediate needs to be latched until WB stage
+
+2. EXEC
+	- Combinatorial 
+		- calu val decode from funct, imm, opcode
+		- Combinatorial setting alui1, alui2
+2->4
+- alu-enable to latch alu_out (needed only in next stage)
+
+4. WB
+	- combinatorial
+		- set pc_increment
+		- set value to be written to register
+4->0
+- regwrite
+- pc_increment
+
 ## JAL(R)
-0. Instructino fetch
+0. Instruction fetch
 
 1. Instruction decode
+1->4: 
+- rdata1 latched
+- waddr latched
+- immediate latched
 
 4. Branch WB
 4->0
@@ -110,5 +213,27 @@ Insert a "bubble" in the pipeline.
 - Stall
 - Flush
 
-
+## Outputs
+- What is the immediate output for? When is it used?
+	- PC_NEXT (So MEMWB_PC needed here)
+	- reg_wdata (So MEMWB_PC needed here)
+	- alu increments (so IDEX_IMM needed here)
 # ISSUES
+
+- How do I register in the beginning which stages need to be skipped?
+	- Maybe having some register that, in the decode-stage, registers the future signals to be enabled (c_alu, c_reg)
+- Once I register this I can simply pass the elements from one to another.
+
+
+It seems like the pipeline control unit is in fact what we need.
+But we seem to just need to take the control signals generated there, and store them in intermediate registers to be carried instead of determining everthing baseed based on the next or current state
+
+## Compile check
+It seems like most signals at the moment were assigned correctly.
+
+Let's check whether it compiles
+
+## Basic simulation attempt
+
+
+## Hazard detection unit

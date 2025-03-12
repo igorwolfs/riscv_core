@@ -36,6 +36,7 @@ module core_mem #(
 	input						ISLOADBS,	// 7th byte needs to be extended
 	input						ISLOADHWS,	// 16th byte needs to be extended
 	input						C_DOSTORE,	// Indicates store instruction
+	input						HCU_STALLPIPE,
 	input  	[31:0] 				ADDR, 	// LOAD / STORE ADDRESS: reg1 + imm
 	input  	[31:0]				WDATA, 	// Data to be stored at ADDR
 	output 	[31:0]				RDATA, 	// Data to be read -> should be shifted and handled according to signals (ISLOAD/ISLOADU)
@@ -51,19 +52,32 @@ assign AXI_WSTRB = STRB;
 assign AXI_AWADDR = ADDR;
 assign AXI_WDATA = (STRB[0]) ? WDATA : (STRB[1]) ? WDATA << 8 : (STRB[2]) ? WDATA << 16 : WDATA << 24;
 
+reg dostore_en;
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
-		AXI_WVALID <= 0;
-		AXI_AWVALID <= 0;
-		AXI_BREADY <= 0;
+		AXI_WVALID <= 1'b0;
+		AXI_AWVALID <= 1'b0;
+		AXI_BREADY <= 1'b0;
+		dostore_en <= 1'b0;
 	end
-	else if (C_DOSTORE & !AXI_AWREADY & !AXI_ARREADY & !AXI_BVALID) // No response checking here
+	else if (C_DOSTORE & (dostore_en | !HCU_STALLPIPE))
 	begin
-		AXI_WVALID <= 1;
-		AXI_AWVALID <= 1;
-		AXI_BREADY <= 1;
+		if (AXI_AWREADY & AXI_ARREADY & AXI_BVALID) // No response checking here
+		begin
+			dostore_en <= 1'b0;
+			AXI_WVALID <= 1'b0;
+			AXI_AWVALID <= 1'b0;
+			AXI_BREADY <= 1'b0;
+		end
+		else
+		begin
+			dostore_en <= 1'b1;
+			AXI_WVALID <= 1'b1;
+			AXI_AWVALID <= 1'b1;
+			AXI_BREADY <= 1'b1;
+		end
 	end
 	else
 	begin
@@ -104,24 +118,29 @@ assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[7]}}, reg_rdata_sh[7:0]} :
 
 assign AXI_ARADDR = ADDR;
 
+reg doload_en;
+
 // READ DATA CHANNEL (MASTER)
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
-		AXI_ARVALID <= 0;
-		AXI_RREADY <= 0;
+		AXI_ARVALID <= 1'b0;
+		AXI_RREADY <= 1'b0;
+		doload_en <= 1'b0;
 	end
-	else if (C_DOLOAD)
+	else if (C_DOLOAD & (doload_en | !HCU_STALLPIPE))
 	begin
 		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 		begin
+			doload_en <= 1'b0;
 			AXI_ARVALID <= 1'b0;
 			AXI_RREADY <= 1'b0;
 			reg_rdata <= AXI_RDATA;
 		end
 		else
 		begin
+			doload_en <= 1'b1;
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			reg_rdata <= 32'hDEADBEEF;

@@ -10,7 +10,7 @@ module core_cmem (
 	input [31:0] 		IMM,
 	input [31:0]		REG_RDATA1, 	// To determine next address
 	input [2:0]			FUNCT3,
-	output reg [31:0] 	DMEM_ADDR, 		// Calculated from immediate
+	output [31:0] 		DMEM_ADDR, 		// Calculated from immediate
 	output reg 			ISLOADBS,
 	output reg 			ISLOADHWS,
 	output reg [3:0] 	STRB
@@ -22,7 +22,7 @@ wire [31:0] dmem_addr;
 
 assign isload = (OPCODE == `OPCODE_I_LOAD) ? 1 : 0;
 assign isstore = (OPCODE == `OPCODE_S) ? 1 : 0;
-assign dmem_addr = (REG_RDATA1 + IMM);
+assign DMEM_ADDR = (REG_RDATA1 + IMM);
 
 // DETERMINE STROBE FOR LOAD
 wire [3:0] load_bstrb, load_hwstrb, load_strb;
@@ -66,18 +66,17 @@ assign strb = (isload) ? load_strb :
 // OUTPUT UNSIGNED / SIGNED CASE
 assign isloadbs = (FUNCT3 == `FUNCT3_LB);
 assign isloadhws = (FUNCT3 == `FUNCT3_LH);
+
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
-		DMEM_ADDR <= 32'hDEADBEEF;
 		ISLOADBS <= 1'b0;
 		ISLOADHWS <= 1'b0;
 		STRB <= 4'b0000;
 	end
 	if (C_CMEM)
 	begin
-		DMEM_ADDR <= dmem_addr;
 		ISLOADBS <= isloadbs;
 		ISLOADHWS <= isloadhws;
 		STRB <= strb;

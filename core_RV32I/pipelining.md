@@ -39,6 +39,8 @@ How do we carry this register from one to the other?
 - Stall everything else while read or write is occurring
 - Carry register from 2->4
 
+NOTE: Whenever there's hazards involved, it's better to CENTRALIZE the registers since then the hazard unit will be able to deal with them more easily.
+
 
 ## How should the stall happen?
 - We can probably inside our state machine / register transition system insert a if (stall).
@@ -61,3 +63,17 @@ So we can solve this in 2 ways
 The instruction decode stage should enable signals that 
 - indicate which registers should be carried where to
 - which control signals should be enabled
+
+## General rule of register centralization
+It seems like the general rule is
+- If the value is needed 2 stages down the road, centralize it.
+- If the value is only necessary in the next stage, don't centralize it.
+
+### Go about it as follows
+1. Go over each instruction
+2. Check its datapath, the registers it needs from earlier
+3. Write the condition in the central control (if ALU INSTRUCTION -> Carry)
+4. Later turn the central control into real control
+
+## Pipeline Hazards
+- reg_RDATA, reg_WDATA_IDX both involve pipeline hazards -> so centralize them.

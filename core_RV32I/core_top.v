@@ -7,8 +7,7 @@ module core_top #(
     parameter AXI_DWIDTH = 32
 ) (
     // SYSTEM
-    input CLK,
-    NRST,
+    input CLK, NRST,
 
     // *** DATA MEMORY / PERIPHERAL INTERFACE ***
     // Write Address Bus
@@ -47,7 +46,8 @@ module core_top #(
 );
 
   // general
-  wire [31:0] imm;
+  wire [31:0] idex_imm;
+  wire [31:0] memwb_imm;
   wire isimm;
 
   // ALU COMMANDS
@@ -78,7 +78,7 @@ module core_top #(
 
   // *** ALU UNIT ***
   assign alu_i1 = reg_rdata1;
-  assign alu_i2 = isimm ? imm : reg_rdata2;
+  assign alu_i2 = isimm ? idex_imm : reg_rdata2;
 
   core_alu #() alu_t (
       .CLK(CLK),
@@ -90,6 +90,7 @@ module core_top #(
   );
 
   // *** CONTROL UNIT ***
+  wire hcu_stallpipe;
   core_control #() core_control_inst (
       // CLK / NRST
       .CLK(CLK),
@@ -98,28 +99,29 @@ module core_top #(
 
       // PC Operations
       .PC(pc),
-      .C_INSTR_FETCH(c_instr_fetch),
-      .C_PC_UPDATE(c_pc_update),
-      .C_WB_CODE(c_wb_code),
+      // BOTH PC UPDATE AND IMEM FETCH SHOULD ALWAYS HAPPEN UNLESS THE STALLPIPE IS ENABLED
+      .HCU_STALLPIPE(hcu_stallpipe),
+      .memwb_c_wb_code(c_wb_code),
 
       // REGISTER OPERATIONS
-      .C_REG_AWVALID(reg_awvalid),
+      .memwb_c_reg_awvalid(reg_awvalid),
       .REG_ARADDR1(reg_araddr1),
       .REG_ARADDR2(reg_araddr2),
-      .REG_AWADDR(reg_awaddr),
+      .memwb_reg_awaddr(reg_awaddr),
       .REG_RDATA1(reg_rdata1),
       .REG_RDATA2(reg_rdata2),
-      .IMM(imm),
-      .C_ALU(c_alu),
+      .idex_imm(idex_imm),
+      .memwb_imm(memwb_imm),
+      .idex_c_alu(c_alu),
       .OPCODE_ALU(opcode_alu),
-      .ISIMM(isimm),
+      .idex_c_isimm(isimm),
 
       // MEMORY OPERATIONS (LOAD / STORE)
       .DMEM_ADDR(dmem_addr),
-      .C_DOLOAD(c_doload),
+      .exmem_c_doload(c_doload),
       .ISLOADBS(isloadbs),
       .ISLOADHWS(isloadhws),
-      .C_DOSTORE(c_dostore),
+      .exmem_c_dostore(c_dostore),
       .STRB(dmem_strb),
 
       // AXI SIGNALS FOR CONTROL
@@ -139,8 +141,8 @@ module core_top #(
   always @(*) begin
     pc_next = pc + 4;
     case (c_wb_code)
-      `WB_CODE_JAL, `WB_CODE_BRANCH: pc_next = pc + imm;
-      `WB_CODE_JALR: pc_next = reg_rdata1 + imm;
+      `WB_CODE_JAL, `WB_CODE_BRANCH: pc_next = pc + memwb_imm;
+      `WB_CODE_JALR: pc_next = reg_rdata1 + memwb_imm;
       default: pc_next = pc + 4;
     endcase
   end
@@ -158,11 +160,8 @@ module core_top #(
       .AXI_RRESP(IMEM_AXI_RRESP),
       .AXI_RVALID(IMEM_AXI_RVALID),
       .AXI_RREADY(IMEM_AXI_RREADY),  // Goes high when fetch succeeded
-
-      .C_INSTR_FETCH(c_instr_fetch),
+      .HCU_STALLPIPE(hcu_stallpipe),
       .INSTRUCTION  (instruction),
-
-      .C_PC_UPDATE(c_pc_update),
       .PC_NEXT(pc_next),
       .PC(pc)
   );
@@ -201,6 +200,7 @@ module core_top #(
       .ISLOADBS (isloadbs),
       .ISLOADHWS(isloadhws),
       .C_DOSTORE(c_dostore),
+      .HCU_STALLPIPE(hcu_stallpipe),
 
       .ADDR (dmem_addr),
       .WDATA(reg_rdata2),
@@ -215,8 +215,8 @@ module core_top #(
     case (c_wb_code)
       `WB_CODE_ALU: reg_wdata = alu_o;
       `WB_CODE_JALR, `WB_CODE_JAL: reg_wdata = pc + 4;
-      `WB_CODE_LUI: reg_wdata = imm;
-      `WB_CODE_AUIPC: reg_wdata = pc + imm;
+      `WB_CODE_LUI: reg_wdata = memwb_imm;
+      `WB_CODE_AUIPC: reg_wdata = pc + memwb_imm;
       `WB_CODE_LOAD: reg_wdata = dmem_rdata;  //! PROBABLY WRONG BYTE ORDERING HERE
       default: reg_wdata = 32'hDEADBEEF;
     endcase

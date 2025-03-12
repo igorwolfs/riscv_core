@@ -8,13 +8,8 @@ module core_calu (
 	input [31:0] 		IMM,
 	input				ISIMM,
 	// REGISTER READ / WRITES
-	output [31:0]		ALU_IMM, // If the alu is an immediate instruction, it sets the second ALU immediate
 	output [3:0]		OPCODE_ALU
 );
-
-	// Create the immediate based on ALU logic
-	assign ALU_IMM 	  = (FUNCT3 != `FUNCT3_SR) ? IMM : ({27'b0, IMM[4:0]});
-
 	assign OPCODE_ALU = ((FUNCT3 == `FUNCT3_ADD) & (!FUNCT7[5] | ISIMM)) ? `ALU_CODE_ADD :
 						((FUNCT3 == `FUNCT3_ADD) & (FUNCT7[5] & !ISIMM)) ? `ALU_CODE_SUB :
 						(FUNCT3 == `FUNCT3_XOR) ? `ALU_CODE_XOR :

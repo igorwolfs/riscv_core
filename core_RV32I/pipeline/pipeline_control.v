@@ -3,7 +3,6 @@
 `include "define.vh"
 
 module pipeline_control (
-	output reg C_INSTR_FETCH,
 	output reg C_ALU,
 	output reg C_DECODE,
 	output reg C_REG_AWVALID,
@@ -35,7 +34,6 @@ reg [3:0] next_state;
 
 // ASSIGN NEXT STATE DEPENDING ON WHETHER S_IFETCH WAS SUCCESFULL
 always @(*) begin
-  C_INSTR_FETCH = 1'b0;
   C_ALU = 1'b0;
   C_DECODE = 1'b0;
   C_REG_AWVALID = 1'b0;
@@ -49,7 +47,6 @@ always @(*) begin
   case (state_machine)
 	S_IFETCH: begin
 	  // Instruction fetch
-	  C_INSTR_FETCH = 1'b1;
 	  if (C_IMEM_DONE) begin
 		next_state = S_IDECODE;
 	  end else begin
@@ -110,37 +107,45 @@ always @(*) begin
 	  next_state  = S_IFETCH;
 	  C_PC_UPDATE = 1'b1;
 	  case (OPCODE)
-		`OPCODE_R, `OPCODE_I_ALU: begin
+		`OPCODE_R, `OPCODE_I_ALU:
+	  	begin
 		  C_WB_CODE = `WB_CODE_ALU;
 		  C_REG_AWVALID = 1'b1;
 		end
-		`OPCODE_B: begin
+		`OPCODE_B:
+		begin
 		  if (C_TAKE_BRANCH) C_WB_CODE = `WB_CODE_BRANCH;
 		  else;
 		end
-		`OPCODE_I_LOAD: begin
+		`OPCODE_I_LOAD:
+		begin
 		  C_WB_CODE = `WB_CODE_LOAD;
 		  C_REG_AWVALID = 1'b1;
 		end
-		`OPCODE_S: begin
+		`OPCODE_S:
+		begin
 		  C_WB_CODE = `WB_CODE_STORE;
 		end
-		`OPCODE_J_JAL: begin
+		`OPCODE_J_JAL:
+		begin
 		  C_WB_CODE = `WB_CODE_JAL;
 		  C_REG_AWVALID = 1'b1;
 		end
 
-		`OPCODE_I_JALR: begin
+		`OPCODE_I_JALR:
+		begin
 		  C_WB_CODE = `WB_CODE_JALR;
 		  C_REG_AWVALID = 1'b1;
 		  // FLAG TO INDICATE RS1+IMM -> PC instead of IMM += PC
 		end
-		`OPCODE_U_LUI: begin
+		`OPCODE_U_LUI:
+		begin
 		  C_WB_CODE = `WB_CODE_LUI;
 		  C_REG_AWVALID = 1'b1;
 		  // Make sure the imm is written here
 		end
-		`OPCODE_U_AUIPC: begin
+		`OPCODE_U_AUIPC:
+		begin
 		  C_WB_CODE = `WB_CODE_AUIPC;
 		  C_REG_AWVALID = 1'b1;
 		  // Make sure the imm + PC is written here
