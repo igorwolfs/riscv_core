@@ -48,7 +48,7 @@ module core_top #(
 
   // general
   wire [31:0] imm;
-  wire is_imm;
+  wire isimm;
 
   // ALU COMMANDS
   wire c_alu;
@@ -78,7 +78,7 @@ module core_top #(
 
   // *** ALU UNIT ***
   assign alu_i1 = reg_rdata1;
-  assign alu_i2 = is_imm ? imm : reg_rdata2;
+  assign alu_i2 = isimm ? imm : reg_rdata2;
 
   core_alu #() alu_t (
       .CLK(CLK),
@@ -96,7 +96,7 @@ module core_top #(
       .NRST(NRST),
       .INSTRUCTION(instruction),
 
-      // PC operations
+      // PC Operations
       .PC(pc),
       .C_INSTR_FETCH(c_instr_fetch),
       .C_PC_UPDATE(c_pc_update),
@@ -112,7 +112,7 @@ module core_top #(
       .IMM(imm),
       .C_ALU(c_alu),
       .OPCODE_ALU(opcode_alu),
-      .IS_IMM(is_imm),
+      .ISIMM(isimm),
 
       // MEMORY OPERATIONS (LOAD / STORE)
       .DMEM_ADDR(dmem_addr),
@@ -224,10 +224,10 @@ module core_top #(
 
   core_registers #() registers_t (
       .CLK(CLK),
-      .NRST(NRST),  // SYS
+      .NRST(NRST),            // SYS
       .AWVALID(reg_awvalid),
       .WDATA(reg_wdata),
-      .AWADDR(reg_awaddr),  // WRITE
+      .AWADDR(reg_awaddr),    // WRITE
       .ARADDR1(reg_araddr1),
       .ARADDR2(reg_araddr2),
       .RDATA1(reg_rdata1),

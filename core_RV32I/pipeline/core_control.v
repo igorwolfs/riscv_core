@@ -16,7 +16,7 @@ module core_control #(
     input    CLK, NRST,
     // *** INSTRUCTION FETCH SIGNALS
     input [31:0]  INSTRUCTION,
-    input [31:0] PC,
+    input [31:0]  PC,
 
     // *** REGISTER SIGNALS
     output [ 4:0] REG_ARADDR1,  // Which read register 1 to use
@@ -28,8 +28,8 @@ module core_control #(
     // *** GENERAL
     output [31:0] IMM,
     // *** ALU SIGNALS
-    output [3:0] OPCODE_ALU,
-    output			IS_IMM, 	// Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
+    output [3:0]  OPCODE_ALU,
+    output			  ISIMM, 	// Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
     // *** MEMORY SIGNALS
     output [31:0] DMEM_ADDR,  // Determines load / store address
     output ISLOADBS,
@@ -48,22 +48,26 @@ module core_control #(
     input HOST_AXI_BREADY,
 
     // *** CONTROL SIGNALS
-    output reg      C_INSTR_FETCH,
-    output reg      C_PC_UPDATE,
-    output reg [3:0] C_WB_CODE,
-    output reg      C_REG_AWVALID,
-    output reg      C_DOLOAD,
-    output reg      C_DOSTORE,
-    output reg      C_ALU
+    output      C_INSTR_FETCH,
+    output      C_PC_UPDATE,
+    output [3:0] C_WB_CODE,
+    output      C_REG_AWVALID,
+    output      C_DOLOAD,
+    output      C_DOSTORE,
+    output      C_ALU
 );
 
   // DECODER SIGNALS;
   wire [2:0] funct3;
   wire [6:0] funct7;
   wire [31:0] imm_dec;
+  wire [6:0] opcode;
 
   // BRANCHING SIGNALS
-  wire take_branch;
+  wire c_take_branch;
+
+  // CONTROL SIGNALS
+  wire c_branch, c_decode, c_cmem;
 
   core_idecode core_idecode_inst (
       .CLK(CLK),
@@ -74,7 +78,7 @@ module core_control #(
       .FUNCT3(funct3),
       .FUNCT7(funct7),
       .IMM_DEC(imm_dec),
-      .IS_IMM(IS_IMM),
+      .ISIMM(ISIMM),
       .REG_ARADDR1(REG_ARADDR1),
       .REG_ARADDR2(REG_ARADDR2),
       .REG_AWADDR(REG_AWADDR)
@@ -86,7 +90,7 @@ module core_control #(
       .FUNCT3(funct3),
       .FUNCT7(funct7),
       .IMM(imm_dec),
-      .IS_IMM(IS_IMM),
+      .ISIMM(ISIMM),
       .ALU_IMM(alu_imm),
       .OPCODE_ALU(OPCODE_ALU)
   );
@@ -98,7 +102,7 @@ module core_control #(
       .FUNCT3(funct3),
       .REG_RDATA1(REG_RDATA1),
       .REG_RDATA2(REG_RDATA2),
-      .TAKE_BRANCH(take_branch)
+      .TAKE_BRANCH(c_take_branch)
   );
 
   core_cmem core_cmem_inst (
@@ -116,149 +120,100 @@ module core_control #(
       .STRB(STRB)
   );
 
-  // ==============================================
-  // CENTRAL LOGIC
-  // ==============================================
-  localparam S_IFETCH = 0;
-  localparam S_IDECODE = 1;  // Normally the register read should be done here as well
-  localparam S_EXEC = 2;
-  localparam S_MEM = 3;
-  localparam S_WB = 4;
-
-  reg [3:0] next_state;
-  reg c_decode, c_cmem, c_branch;
-
-
   assign IMM = (C_ALU & (opcode == `OPCODE_I_ALU)) ? alu_imm : imm_dec;
 
-  wire [6:0] opcode;
-  reg  [6:0] opcode_latched;
-  // ASSIGN NEXT STATE DEPENDING ON WHETHER S_IFETCH WAS SUCCESFULL
-  always @(*) begin
-    C_INSTR_FETCH = 1'b0;
-    C_ALU = 1'b0;
-    c_decode = 1'b0;
-    C_REG_AWVALID = 1'b0;
-    c_cmem = 1'b0;
-    C_DOSTORE = 1'b0;
-    C_DOLOAD = 1'b0;
-    c_branch = 1'b0;
-    C_PC_UPDATE = 1'b0;
-    C_WB_CODE = `WB_CODE_NONE;
-    next_state = S_IFETCH;
-    case (state_machine)
-      S_IFETCH: begin
-        // Instruction fetch
-        C_INSTR_FETCH = 1'b1;
-        if (IMEM_AXI_RVALID & IMEM_AXI_ARREADY) begin
-          next_state = S_IDECODE;
-        end else begin
-          next_state = S_IFETCH;
-        end
-      end
-      S_IDECODE: begin
-        c_decode = 1'b1;
-        // Register read and decode stage (takes 1 cycle, always)
-        case (opcode)
-          `OPCODE_J_JAL, `OPCODE_I_JALR, `OPCODE_U_LUI, `OPCODE_U_AUIPC:
-          	next_state = S_WB;
-          default: 
-		  	next_state = S_EXEC;
-        endcase
-      end
-      S_EXEC:
-      begin
-        case (opcode)
-          `OPCODE_R: begin
-            next_state = S_WB;
-            C_ALU = 1'b1;
-          end
-          `OPCODE_I_ALU: begin
-            next_state = S_WB;  // Go to next state, by default immediate is not used
-            C_ALU = 1'b1;
-          end
-          `OPCODE_I_LOAD, `OPCODE_S: begin
-            next_state = S_MEM;
-            c_cmem = 1'b1;  // Latches the memory control signal
-          end
-          `OPCODE_B: begin
-            next_state = S_WB;
-            c_branch   = 1'b1;
-          end
-          default: next_state = S_WB;
-        endcase
-      end
-      S_MEM:
-      case (opcode)
-        // Memory control signals (raddr, load, loadbs, loadhws, store, strb) are latched
-        `OPCODE_I_LOAD: begin
-          C_DOLOAD = 1'b1;
-          if (HOST_AXI_RREADY & HOST_AXI_RVALID)  // DMEM AXI STALL
-            next_state = S_WB;
-          else next_state = S_MEM;
-        end
-        `OPCODE_S: begin
-          C_DOSTORE = 1'b1;
-          if (HOST_AXI_BVALID & HOST_AXI_BREADY)  // DMEM AXI STALL
-            next_state = S_WB;
-          else next_state = S_MEM;
-        end
-        default: next_state = S_WB;
-      endcase
-      S_WB: begin
-        // PC increment calculation from immediates
-        next_state  = S_IFETCH;
-        C_PC_UPDATE = 1'b1;
-        case (opcode)
-          `OPCODE_R, `OPCODE_I_ALU: begin
-            C_WB_CODE = `WB_CODE_ALU;
-            C_REG_AWVALID = 1'b1;
-          end
-          `OPCODE_B: begin
-            if (take_branch) C_WB_CODE = `WB_CODE_BRANCH;
-            else;
-          end
-          `OPCODE_I_LOAD: begin
-            C_WB_CODE = `WB_CODE_LOAD;
-            C_REG_AWVALID = 1'b1;
-          end
-          `OPCODE_S: begin
-            C_WB_CODE = `WB_CODE_STORE;
-          end
-          `OPCODE_J_JAL: begin
-            C_WB_CODE = `WB_CODE_JAL;
-            C_REG_AWVALID = 1'b1;
-          end
-
-          `OPCODE_I_JALR: begin
-            C_WB_CODE = `WB_CODE_JALR;
-            C_REG_AWVALID = 1'b1;
-            // FLAG TO INDICATE RS1+IMM -> PC instead of IMM += PC
-          end
-          `OPCODE_U_LUI: begin
-            C_WB_CODE = `WB_CODE_LUI;
-            C_REG_AWVALID = 1'b1;
-            // Make sure the imm is written here
-          end
-          `OPCODE_U_AUIPC: begin
-            C_WB_CODE = `WB_CODE_AUIPC;
-            C_REG_AWVALID = 1'b1;
-            // Make sure the imm + PC is written here
-          end
-          default: ;
-        endcase
-      end
-    endcase
-  end
-
-  reg [3:0] state_machine;
+  reg [6:0] opcode_latched;
 
   always @(posedge CLK) begin
-    if (!NRST) state_machine <= S_IFETCH;
-    else opcode_latched <= opcode;
-    state_machine <= next_state;
+    opcode_latched <= opcode;
   end
 
+  // ==============================================
+  // REGISTERS
+  // ==============================================
+  // Fetch -> Instruction Decode
+  reg [31:0] fid_pc;
+  reg [31:0] fid_instruction;
+
+  always @(posedge CLK)
+  begin
+    if (NRST)
+    begin
+      // FID
+      fid_pc <= 32'hDEADBEEF;
+      fid_instruction <= 32'hDEADBEEF;
+    end
+    else
+    begin
+      // FID
+      if (C_PC_UPDATE)
+        fid_pc <= PC;
+      fid_instruction <= INSTRUCTION;
+      // IDEX
+    end
+  end
+
+  // *** ID stage ***
+  // Instruction Decode -> Execute
+  // Instruction decode -> WB (JAL, JALR, LUI, AUIPC)
+  reg [31:0] idex_pc; // PC carry
+  reg [31:0] idex_rdata1;
+  reg [31:0] idex_rdata2;
+  reg [2:0] idex_funct3;
+  reg [6:0] idex_funct7;
+  reg idex_isimm;
+  reg [31:0] idex_imm;
+  reg [4:0] idex_awaddr;
+
+
+  // *** EXECUTE STAGE ***
+  // Execute -> WB
+  reg [31:0] exmem_pc; // (all -> Note the PC will be +4 automatically, and should be flushed in other cases)
+  reg [4:0] exmem_awaddr; // (store, load, alu, jump, lui, jal(r))
+  reg [31:0] exmem_alu; // (alu)
+  reg exmem_take_branch; // (branch)
+
+  // Execute -> MEM
+  reg [31:0] exmem_rdata1; // (store, load)
+  reg [31:0] exmem_rdata2; // (store, load)
+  reg [4:0] exmem_awaddr; // (store, load, )
+  reg [31:0] exmem_memaddr; // (store, load)
+  reg exmem_isloadbs;
+  reg exmem_isloadhws;
+  reg [3:0] exmem_strb;
+
+  // *** MEMORY STAGE ***
+  // Memory -> WB
+  reg [31:0] memwb_pc; // pc carry
+  reg [4:0] memwb_awaddr // register write address carry
+  reg [31:0] memwb_rdata;
+
+  // ==============================================
+  // CENTRAL SM PIPELINE CONTROL
+  // ==============================================
+
+  wire c_imem_done, c_mem_done;
+  assign c_imem_done = IMEM_AXI_RVALID & IMEM_AXI_ARREADY;
+  assign c_mem_done = ((HOST_AXI_RREADY & HOST_AXI_RVALID) | (HOST_AXI_BVALID & HOST_AXI_BREADY));
+
+    pipeline_control pipeline_control_inst (
+      .C_INSTR_FETCH(C_INSTR_FETCH),
+      .C_ALU(C_ALU),
+      .C_DECODE(c_decode),
+      .C_REG_AWVALID(C_REG_AWVALID),
+      .C_CMEM(c_cmem),
+      .C_DOSTORE(C_DOSTORE),
+      .C_DOLOAD(C_DOLOAD),
+      .C_BRANCH(c_branch),
+      .C_PC_UPDATE(C_PC_UPDATE),
+      .C_WB_CODE(C_WB_CODE),
+      .CLK(CLK),
+      .NRST(NRST),
+      .C_IMEM_DONE(c_imem_done),
+      .C_MEM_DONE(c_mem_done),
+      .C_TAKE_BRANCH(c_take_branch),
+      .OPCODE(opcode)
+    );
 
 endmodule
 

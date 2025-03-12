@@ -23,7 +23,7 @@ module core_ifetch #(
 	// *** CONTROL SIGNAL INTERFACE ***
 	// INSTRUCTIONS
 	input						C_INSTR_FETCH,
-	output reg [31:0] 			INSTRUCTION,
+	output [31:0] 				INSTRUCTION,
 	// PC UPDATES
 	input						C_PC_UPDATE,
 	input [31:0]				PC_NEXT,
@@ -58,7 +58,6 @@ begin
 	begin
 		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
-		INSTRUCTION <= 32'hDEADBEEF;
 	end
 	else if (C_INSTR_FETCH)
 	begin
@@ -67,7 +66,6 @@ begin
 		begin
 			AXI_ARVALID <= 1'b0;
 			AXI_RREADY <= 1'b0;
-			INSTRUCTION <= AXI_RDATA;
 		end
 		else
 			begin

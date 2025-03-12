@@ -10,7 +10,7 @@ module core_idecode #()
 	output [6:0] 			OPCODE,
 	output reg [2:0] 		FUNCT3,
 	output reg [6:0] 		FUNCT7,
-	output reg				IS_IMM,
+	output reg				ISIMM,
 	output reg [31:0]		IMM_DEC,
 	// REGISTER READ / WRITES
 	output [4:0] 			REG_ARADDR1,
@@ -38,7 +38,7 @@ module core_idecode #()
 	assign imm_J_extended = {{12{imm_J_instr[19]}}, imm_J_instr} << 1;
 	
 	// SIGNALS
-	wire is_imm;
+	wire isimm;
 	wire [2:0] funct3;
 	wire [6:0] funct7;
 	wire [4:0] reg_araddr1;
@@ -55,18 +55,18 @@ module core_idecode #()
 				imm = imm_I_extended;
 			`OPCODE_S:
 					imm = imm_S_extended;
-			`OPCODE_B: 
+			`OPCODE_B:
 					imm = imm_B_extended;
 			`OPCODE_U_LUI, `OPCODE_U_AUIPC:
 					imm = imm_U_extended;
-			`OPCODE_J_JAL: 
+			`OPCODE_J_JAL:
 					imm = imm_J_extended;
 			default: imm = 32'hDEADBEEF;
 		endcase
 	end
 	
 
-	assign is_imm = (`OPCODE_I_ALU == OPCODE) || (`OPCODE_S == OPCODE)
+	assign isimm = (`OPCODE_I_ALU == OPCODE) || (`OPCODE_S == OPCODE)
 	|| (`OPCODE_B == OPCODE) || (`OPCODE_U_LUI == OPCODE)
 	|| (`OPCODE_U_AUIPC == OPCODE) || (`OPCODE_J_JAL == OPCODE);
 
@@ -84,13 +84,13 @@ module core_idecode #()
 		if (!NRST)
 		begin
 			IMM_DEC <= 32'hDEADBEEF;
-			IS_IMM <= 0;
+			ISIMM <= 0;
 			REG_AWADDR <= 0;
 		end
 		else if (C_DECODE)
 		begin
 			// IMMEDIATE
-			IS_IMM <= is_imm;
+			ISIMM <= isimm;
 			IMM_DEC <= imm;
 			// FUNCT3/7
 			FUNCT3 <= funct3;

@@ -1,5 +1,7 @@
 `timescale 1ns/10ps
 
+`include "axi_defines.vh"
+
 module riscv_mcu
 #(
     parameter INT_MEM_SIZE = 512,
@@ -14,7 +16,7 @@ module riscv_mcu
     // Peripheral interfaces + Address Ss
     parameter S0_EN = 1'b1, // MEMORY
     parameter S1_EN = 1'b1, // UART
-    parameter S2_EN = 1'b0, // TEST
+    parameter S2_EN = 1'b1, // TEST
     parameter ADDR_S0_START = 32'h00000000,
     parameter ADDR_S0_END = 32'h3FFFFFF0,
     parameter ADDR_S1_START = 32'h40000000,

@@ -88,7 +88,6 @@ begin
                 begin
                     $display("WRITING TO FILE!\r\n");
 					$fwrite(file, "%h\n", AXI_WDATA);
-					$fwrite(file, "%c\n", AXI_WDATA);
                 end 
                 else if (AXI_AWADDR == ADDR_STOP_SIM)
                 begin

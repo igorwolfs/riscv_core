@@ -15,10 +15,13 @@ begin
     #100;
 end
 
-always #5 CLK = ~CLK; //255  65536*8
+always #1 CLK = ~CLK; //255  65536*8
 wire UART_TX_DSER, UART_RX_DSER;
 assign UART_RX_DSER = UART_TX_DSER;
-    riscv_mcu #(.INT_MEM_SIZE(128), .AXI_AWIDTH(32), .AXI_DWIDTH(32)) riscv_mcu_inst (
+    riscv_mcu #(.INT_MEM_SIZE(65536*8), 
+    .CLOCK_FREQUENCY(500_000_000), 
+    .AXI_AWIDTH(32),
+    .AXI_DWIDTH(32)) riscv_mcu_inst (
     .CLK(CLK),
     .NRST(NRST),
     .UART_TX_DSER(UART_TX_DSER),

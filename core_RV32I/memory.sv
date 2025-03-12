@@ -1,6 +1,6 @@
 `timescale 1ns/10ps
 
-// `define TEST_ENABLED
+`define TEST_ENABLED
 
 module memory #(parameter INT_MEM_SIZE = 256,
             parameter AXI_AWIDTH = 4,

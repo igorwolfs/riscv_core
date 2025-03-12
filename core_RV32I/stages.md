@@ -77,7 +77,6 @@ DEPENDING ON INSTRUCTION
 - JALR: immediate + reg_rdata1 set equal to PC
 - PC+4 written to regwrite 
 
-
 ### ISSUES:
 - 2->3: all these things are latched only for a single clock cycle, but the actual memory operation takes more time.
 - 1->2: reg_rdata2 is not latched until 3, but it is the data that is written to data memory using the strobe. This data should be latched somewhere.
@@ -92,6 +91,24 @@ DEPENDING ON INSTRUCTION
 		- Stall the pipeline
 		- Add an extra data-path directly decoding the JAL(R) immediate and adding it to the PC in the same clock-cycle
 So for now:
-- Implement simple pipelining with flushing in case of branch / mechanisms 
+- Try to clock the CPU as quickly as possible and check the result.
+### Centralize the registers inside the control unit 
+
+## Create a hazard detection (HDU)
+Control Hazards:
+- Implement flushing in case of JAL(R) mechanisms.
+- Implement flushing in case of a taken branch.
+
+Data Hazards
+- Implement checks on reads and writes of the pipeline
+- Implement checks on loads into register
+	- Stall when an instruction is trying to read from a register something that is still being stored into the register.
+
+Insert a "bubble" in the pipeline.
+
+### Essential signals
+- Stall
+- Flush
+
 
 # ISSUES

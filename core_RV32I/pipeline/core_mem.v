@@ -14,7 +14,7 @@ module core_mem #(
     input 	                    AXI_AWREADY,
     // Write data-channel
     output [AXI_DWIDTH-1:0]     AXI_WDATA,
-    output [(AXI_DWIDTH/8)-1:0] AXI_WSTRB,
+    output [3:0] 				AXI_WSTRB,
     output reg                  AXI_WVALID,
     input  	                    AXI_WREADY,
     // Response channel
@@ -134,7 +134,6 @@ begin
 		reg_rdata <= 32'hDEADBEEF;
 	end
 end
-
 
 endmodule
 
