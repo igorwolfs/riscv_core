@@ -39,6 +39,8 @@ module core_control #(
     output ISLOADHWS,
     output [3:0] STRB,
 
+    output HCU_PC_WRITE,
+
     // *** INSTRUCTION MEMORY AXI SIGNALS
     // And for read valid
     input IMEM_AXI_RVALID,
@@ -56,7 +58,7 @@ module core_control #(
     // Instruction fetch should always happen unless stall happens.
     // And make the imem finish to avoid occupying the bus continuously in case of a memory fetch.
     // PC Should be updated every clock-cycle if not in stall-mode.
-    output HCU_STALLPIPE,
+    output reg C_PC_UPDATE,
     output reg [3:0] memwb_c_wb_code,
     output reg  memwb_c_reg_awvalid,
     output reg  exmem_c_doload,
@@ -73,6 +75,7 @@ module core_control #(
 
   // CONTROL SIGNALS
   wire c_branch, c_cmem, c_isimm, c_alu, c_dostore, c_doload, c_reg_awvalid;
+  wire c_reg1_memread, c_reg2_memread;
   wire [3:0] c_wb_code;
   wire [3:0] reg_awaddr;
 
@@ -92,13 +95,15 @@ module core_control #(
       .C_WB_CODE(c_wb_code),
       .C_REG_AWVALID(c_reg_awvalid),
       .C_CMEM(c_cmem),
+      .C_REG1_MEMREAD(c_reg1_memread),
+      .C_REG2_MEMREAD(c_reg2_memread),
       .REG_ARADDR1(REG_ARADDR1), // Do not save as intermediate -> address only needed in next stage
       .REG_ARADDR2(REG_ARADDR2),
       .REG_AWADDR(reg_awaddr)
   );
 
   core_calu core_calu_inst (
-      .OPCODE(opcode_latched),
+      .OPCODE(OPCODE),
       .FUNCT3(funct3),
       .FUNCT7(funct7),
       .IMM(imm_dec),
@@ -121,7 +126,7 @@ module core_control #(
       .CLK(CLK),
       .NRST(NRST),
       .C_CMEM(idex_c_cmem),
-      .OPCODE(opcode_latched),
+      .OPCODE(OPCODE),
       .PC(PC),
       .IMM(idex_imm),
       .REG_RDATA1(idex_reg_rdata1),
@@ -132,11 +137,6 @@ module core_control #(
       .STRB(STRB)
   );
 
-  reg [6:0] opcode_latched;
-
-  always @(posedge CLK) begin
-    opcode_latched <= opcode;
-  end
 
   // ==============================================
   // HCU
@@ -177,7 +177,6 @@ module core_control #(
   assign c_mem_done = ((HOST_AXI_RREADY & HOST_AXI_RVALID) | (HOST_AXI_BVALID & HOST_AXI_BREADY));
 
 
-  wire hcu_flushhpipe;
   // ==============================================
   // REGISTERS
   // ==============================================
@@ -189,38 +188,37 @@ module core_control #(
 
   // SIGNALS
   reg [3:0] idex_c_wb_code;
-  reg idex_c_doload, idex_c_dostore;
+  reg idex_c_doload, idex_c_dostore, idex_c_regread;
   reg idex_c_branch, idex_c_cmem, idex_c_reg_awvalid;
 
   // *** EXECUTE STAGE ***
-  reg [31:0] exmem_imm, exmem_reg_rdata1, exmem_reg_rdata2;  // (store, load)
-  reg [4:0] exmem_reg_awaddr;   // (store, load)
-  reg       exmem_c_take_branch, exmem_c_reg_awvalid;
-  reg [3:0] exmem_c_wb_code; //! WARNING: Adaptation is needed here if branch is taken
+  reg [31:0] exmem_pc, exmem_imm, exmem_reg_rdata1, exmem_reg_rdata2;  // (store, load)
+  reg [4:0]  exmem_reg_awaddr;   // (store, load)
+  reg        exmem_c_take_branch, exmem_c_reg_awvalid;
+  reg [3:0]  exmem_c_wb_code; //! WARNING: Adaptation is needed here if branch is taken
 
   // *** WRITE BACK STAGE ***
   reg memwb_c_take_branch;
+
+  // Wires (signal potential register updates)
+  wire hcu_idex_enable, hcu_idex_flush, hcu_exmem_enable, hcu_idex_flush;
 
   // *** SYNCHRONOUS LOGIC ***
   // IDEX
   always @(posedge CLK)
   begin
-    if (hcu_flushhpipe)
-    begin
-      // Set all control signals equal to zero
-      // Set the program counter to the value indicated by the wb instruction
-
-    end
-    if (!HCU_STALLPIPE) // MAKE SURE
+    if (hcu_idex_enable) // MAKE SURE
     begin
       //! IDEX
-      // IF R-alu or I-alu or Store or Load
+      // IF R-ALU or I-ALU or STORE or LOAD
       idex_reg_rdata1 <= REG_RDATA1;
       idex_reg_rdata2 <= REG_RDATA2;
       idex_reg_awaddr <= reg_awaddr;
-      // IF branching
+
+      // IF BRANCHING
       idex_imm <= imm_dec;
       idex_c_isimm <= c_isimm;
+
       // CONTROL SIGNALS
       idex_c_branch <= c_branch;
       idex_c_alu <= c_alu;
@@ -230,6 +228,27 @@ module core_control #(
       idex_c_reg_awvalid <= c_reg_awvalid;
       idex_c_cmem <= c_cmem;
 
+      // PROGRAM COUNTER
+      idex_pc <= PC;
+    end
+    else if (hcu_idex_flush)
+      begin
+        idex_reg_rdata1 <= 0;
+        idex_reg_rdata2 <= 0;
+        idex_reg_awaddr <= 0;
+        idex_imm <= 0;
+        idex_c_isimm <= 1;
+        idex_c_branch <= 0;
+        idex_c_alu <= 0;
+        idex_c_doload <= 0;
+        idex_c_dostore <= 0;
+        idex_c_wb_code <= c_wb_code;
+        idex_c_reg_awvalid <= 1;
+        idex_c_cmem <= 0;
+      end
+    else;
+    if (hcu_exmem_enable)
+    begin
       //! EXMEM
       // if store / load instruction
       exmem_reg_rdata2 <= idex_reg_rdata2;
@@ -241,23 +260,81 @@ module core_control #(
       exmem_c_dostore <= idex_c_dostore;
       exmem_c_reg_awvalid <= idex_c_reg_awvalid;
       exmem_c_wb_code <= idex_c_wb_code;
-      //! MEMWB
-      // For any instruction except branch and store (since no write to register is done there)
-      memwb_reg_awaddr <= exmem_reg_awaddr;
-      memwb_c_take_branch <= exmem_c_take_branch;
-      // For any instruction where the PC is changed using imm
-      memwb_imm <= exmem_imm;
-      memwb_c_reg_awvalid <= exmem_c_reg_awvalid;
-      memwb_c_wb_code <= exmem_c_wb_code;
+
+      // PROGRAM COUNTER
+      exmem_pc <= idex_pc;
     end
+    else if (hcu_exmem_flush)
+      begin
+        exmem_reg_rdata1 <= 0;
+        exmem_reg_rdata2 <= 0;
+        exmem_reg_awaddr <= 0;
+        exmem_imm <= 0;
+        exmem_c_isimm <= 1;
+        exmem_c_branch <= 0;
+        exmem_c_alu <= 0;
+        exmem_c_doload <= 0;
+        exmem_c_dostore <= 0;
+        exmem_c_wb_code <= c_wb_code;
+        exmem_c_reg_awvalid <= 1;
+        exmem_c_cmem <= 0;
+      end
     else;
+    //! MEMWB
+    // For any instruction except branch and store (since no write to register is done there)
+    memwb_reg_awaddr <= exmem_reg_awaddr;
+    memwb_c_take_branch <= exmem_c_take_branch;
+    // For any instruction where the PC is changed using imm
+    memwb_imm <= exmem_imm;
+    memwb_c_reg_awvalid <= exmem_c_reg_awvalid;
+    memwb_c_wb_code <= exmem_c_wb_code;
+    memwb_pc <= exmem_pc;
   end
+
+  core_hcu core_hcu_inst (
+    .REG_ARADDR1(REG_ARADDR1),
+    .REG_ARADDR2(REG_ARADDR2),
+    .C_REG1_MEMREAD(c_reg1_memread),
+    .C_REG2_MEMREAD(c_reg2_memread),
+    .EXMEM_REG_AWADDR(exmem_reg_awaddr),
+    .MEMBW_REG_AWADDDR(memwb_reg_awaddr),
+    .C_TAKE_BRANCH(c_take_branch),
+    .HCU_IDEX_ENABLE(hcu_idex_enable),
+    .HCU_IDEX_FLUSH(hcu_idex_flush),
+    .HCU_EXMEM_ENABLE(hcu_exmem_enable),
+    .HCU_EXMEM_FLUSH(hcu_exmem_flush),
+    .HCU_PC_WRITE(HCU_PC_WRITE)
+  );
 
 endmodule
 
 /**
-So obviously when the pipe is stalled no new instruction fetches may happen and no memory writes may happen.
-That means that I need some kind-of way to signal to my memory module and my instruction fetcher to stop fetching / stop incrementing the program counter.
-What I thought is to simply send the CPU_STALL signal, when the CPU_STALL is disabled the PC will always increment and the memory modules will latch the dofetch-signal until the fetching is done. When the CPU_STALL is disabled they won't.
-Is this the normal way of doing things? Or is it better to have a single IFETCH, PC_INCR and enable them from central cpu-command unless the stall is enabled?
-*/
+Stalling the CPU
+- Only the ifetch, idecode, exec phases need to be stalled.
+The other ones need never to be stalled
+- memory read / store
+- write back
+If the memory write takes multiple cycles, you should stall only the stages before.
+The write-back may go on writing back.
+So then you need to on the "stall in case of memory-read/write"-instruction
+  - disable the WB
+  - disable the PC increment
+And in case of "stall because of data-hazard"
+
+So in case of a pipeline data hazard, the entire pipeline can keep moving forward except for the idecode and exec stage
+- You should just insert a NOP into the IDECODE stage if you see a data hazard is present
+  - This way the idec->exec stage will do nothing (no memory reads)
+- You should disable the PC-updating (PC+4)
+In case of a pipeline control hazard
+- Delay due to memory fetching:
+  - The WB can simply happen
+  - The signals for IDEX, EXMEM should be disabled
+  - So the difference is that in a wait for MEM stage all stages should be disabled, and a PC increment and a write already occurred
+  - In the 
+  */
+
+  /**
+  I'm a bit confused about the difference between a stall in the case where one needs to wait for memory a memory operation to finish, and a stall in case of a data hazard (so reading a register that hasn't been written yet).
+  I would use 2 different signals for this, in case of the memory-wait situation one can simply disable all signals and wait for the memory transaction to complete.
+  However in case of the data hazard issue the solution seems to be to
+  */

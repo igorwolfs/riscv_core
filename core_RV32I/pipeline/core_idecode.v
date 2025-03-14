@@ -6,7 +6,7 @@ module core_idecode #()
 (
 	input 					CLK, NRST,
 	input  [31:0] 			INSTRUCTION,
-	output [6:0] 			OPCODE,
+	output reg [6:0] 		OPCODE,
 	output reg [2:0] 		FUNCT3,
 	output reg [6:0] 		FUNCT7,
 	output reg				C_ISIMM,
@@ -18,6 +18,9 @@ module core_idecode #()
 	output reg [3:0]		C_WB_CODE,
 	output reg				C_REG_AWVALID,
 	output reg 				C_CMEM,
+	// INDICATE WHETHER READS SHOULD HAPPEN IN ID_EX-stage
+	output reg 				C_REG1_MEMREAD,
+	output reg				C_REG2_MEMREAD,
 
 	// REGISTER READ / WRITES
 	output [4:0] 			REG_ARADDR1,
@@ -49,12 +52,13 @@ module core_idecode #()
 	wire [6:0] funct7;
 	wire [4:0] reg_araddr1;
 	wire [4:0] reg_araddr2;
+	wire [6:0] opcode
 
-	assign OPCODE = INSTRUCTION[6:0];
+	assign opcode = INSTRUCTION[6:0];
 
 	always @(*)
 	begin
-		case (OPCODE)
+		case (opcode)
 			`OPCODE_I_ALU, `OPCODE_I_LOAD, `OPCODE_I_JALR:
 				IMM_DEC = imm_I_extended;
 			`OPCODE_S:
@@ -87,18 +91,22 @@ always @(*) begin
 	C_DOSTORE = 1'b0;
 	C_DOLOAD = 1'b0;
 	C_BRANCH = 1'b0;
+	C_REG_MEMREAD = 1'b0;
 	C_WB_CODE = `WB_CODE_NONE;
-	case (OPCODE)
+	case (opcode)
 	`OPCODE_R: begin
 		C_ALU = 1'b1;
 		C_WB_CODE = `WB_CODE_ALU;
 		C_REG_AWVALID = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
+		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_ALU: begin
 		C_ALU = 1'b1;
 		C_WB_CODE = `WB_CODE_ALU;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_LOAD: begin
 		C_CMEM = 1'b1;
@@ -106,17 +114,23 @@ always @(*) begin
 		C_WB_CODE = `WB_CODE_LOAD;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
 	end
 	`OPCODE_S: begin
 		C_CMEM = 1'b1;
 		C_DOSTORE = 1'b1;
 		C_WB_CODE = `WB_CODE_STORE;
 		C_ISIMM = 1'b1;
+		C_REG_MEMREAD = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
+		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_B: begin
 		C_BRANCH = 1'b1;
 		C_WB_CODE = `WB_CODE_BRANCH; // IF WB_CODE_BRANCH AND c_branch THEN take branch
 		C_ISIMM = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
+		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_J_JAL: begin
 		C_WB_CODE = `WB_CODE_JAL;
@@ -127,6 +141,7 @@ always @(*) begin
 		C_WB_CODE = `WB_CODE_JALR;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_REG1_MEMREAD = 1'b1;
 		// FLAG TO INDICATE RS1+IMM -> PC instead of IMM += PC
 	end
 	`OPCODE_U_LUI: begin
@@ -150,6 +165,7 @@ end
 		// FUNCT3/7
 		FUNCT3 <= funct3;
 		FUNCT7 <= funct7;
+		OPCODE <= opcode;
 	end
 endmodule
 

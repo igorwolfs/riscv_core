@@ -1,7 +1,7 @@
-//! **** RUNTIME SETTINGS
+//! ***** RUNTIME SETTINGS *****
 `define SIMULATION
 
-//! **** INSTRUCTIONS ****
+//! ***** INSTRUCTIONS *****
 // 2-argument arithmetic instructions
 `define OPCODE_R 7'b0110011
 
@@ -28,7 +28,7 @@
 // EBREAK AND ECALL INSTRUCTIONS
 `define OPCODE_SYS 7'b1110011
 
-//! **** SUB-INSTRUCTIONS ****
+//! ***** SUB-INSTRUCTIONS *****
 // **** ARITHMETIC SUB-INSTRUCTIONS ****
 // * FUNCT3
 // ADD vs SUB -> funct7
@@ -78,7 +78,7 @@
 `define FUNCT3_BGEU 3'h7
 
 
-// ! **** ALU INSTRUCTIONS ****
+//! ***** ALU INSTRUCTIONS ****
 `define ALU_CODE_ADD	0
 `define ALU_CODE_SUB	1
 `define ALU_CODE_XOR	2
@@ -91,7 +91,7 @@
 `define ALU_CODE_SLTU	9
 `define ALU_CODE_INVALID	4'b1111
 
-//! **** WB CODES *****
+//! ***** WB CODES *****
 `define WB_CODE_NONE 		0
 `define WB_CODE_LOAD		1
 `define WB_CODE_STORE		2
@@ -101,7 +101,6 @@
 `define WB_CODE_LUI			6
 `define WB_CODE_AUIPC		7
 `define WB_CODE_ALU			8
-
 
 /**
 For PC and regwrite purposes

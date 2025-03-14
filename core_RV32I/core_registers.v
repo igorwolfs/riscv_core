@@ -32,5 +32,4 @@ end
 assign RDATA1 = regs[ARADDR1];
 assign RDATA2 = regs[ARADDR2];
 
-
 endmodule

@@ -61,9 +61,8 @@ module core_top #(
   wire [31:0] reg_rdata1, reg_rdata2;
 
   // INSTRUCTION FETCH
-  wire        c_instr_fetch;  // On high -> Instruction fetch
   wire [31:0] instruction;
-  wire        c_pc_update;
+  wire        hcu_pc_write;
   wire [ 3:0] c_wb_code;  // On high -> PC update
   wire [31:0] jump_imm;  // PC update number
   wire [31:0] pc;
@@ -123,6 +122,7 @@ module core_top #(
       .ISLOADHWS(isloadhws),
       .exmem_c_dostore(c_dostore),
       .STRB(dmem_strb),
+      .HCU_PC_WRITE(hcu_pc_write),
 
       // AXI SIGNALS FOR CONTROL
       // > IMEM (READ ONLY)
@@ -137,15 +137,6 @@ module core_top #(
 
 
   // *** INSTRUCTION FETCH (AXI MASTER) ***
-  reg [31:0] pc_next;
-  always @(*) begin
-    pc_next = pc + 4;
-    case (c_wb_code)
-      `WB_CODE_JAL, `WB_CODE_BRANCH: pc_next = pc + memwb_imm;
-      `WB_CODE_JALR: pc_next = reg_rdata1 + memwb_imm;
-      default: pc_next = pc + 4;
-    endcase
-  end
 
   core_ifetch #(
       .AXI_AWIDTH(AXI_AWIDTH),
@@ -160,8 +151,8 @@ module core_top #(
       .AXI_RRESP(IMEM_AXI_RRESP),
       .AXI_RVALID(IMEM_AXI_RVALID),
       .AXI_RREADY(IMEM_AXI_RREADY),  // Goes high when fetch succeeded
-      .HCU_STALLPIPE(hcu_stallpipe),
-      .INSTRUCTION  (instruction),
+      .PC_WRITE(hcu_pc_write),
+      .INSTRUCTION(instruction),
       .PC_NEXT(pc_next),
       .PC(pc)
   );
@@ -230,9 +221,9 @@ module core_top #(
       .AWADDR(reg_awaddr),    // WRITE
       .ARADDR1(reg_araddr1),
       .ARADDR2(reg_araddr2),
-      .RDATA1(reg_rdata1),
+      .RDATA1(reg_rdata1),    // READ
       .RDATA2(reg_rdata2)
-  );  // READ
+  );
 
 endmodule
 

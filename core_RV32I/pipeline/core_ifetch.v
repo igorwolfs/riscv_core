@@ -24,7 +24,7 @@ module core_ifetch #(
 	// INSTRUCTIONS
 	output reg [31:0] 			INSTRUCTION,
 	// PC UPDATES
-	input						HCU_STALLPIPE,
+	input						PC_WRITE,
 	input [31:0]				PC_NEXT,
 
 	// *** PROGRAM COUNTER ***
@@ -38,7 +38,7 @@ begin
 	else
 	// ONLY INCREMENT IF FETCHING ISN'T IN PROGRESS => PC_INCR should be controlled by control circuitry, triggered at the end of the pipeline cycle
 	begin
-		if (!HCU_STALLPIPE)
+		if (PC_WRITE)
 			PC <= PC_NEXT;
 		else;
 	end
@@ -64,7 +64,7 @@ begin
 		AXI_RREADY <= 0;
 		INSTRUCTION <= 32'hDEADBEEF;
 	end
-	else if (!HCU_STALLPIPE || ifetch_en)
+	else if (PC_WRITE || ifetch_en)
 	begin
 		// Always ready to receive instructions on C_INSTR_FETCH
 		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
@@ -75,12 +75,12 @@ begin
 			INSTRUCTION <= AXI_RDATA;
 		end
 		else
-			begin
+		begin
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			ifetch_en <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
 			// INSTRUCTION <= 32'hDEADBEEF;
-			end
+		end
 	end
 	else
 	begin
