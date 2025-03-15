@@ -6,21 +6,22 @@ module core_idecode #()
 (
 	input 					CLK, NRST,
 	input  [31:0] 			INSTRUCTION,
-	output reg [6:0] 		OPCODE,
 	output reg [2:0] 		FUNCT3,
 	output reg [6:0] 		FUNCT7,
 	output reg				C_ISIMM,
 	output reg [31:0]		IMM_DEC,
-	output reg				C_ALU,
-	output reg				C_BRANCH,
-	output reg 				C_DOLOAD,
-	output reg 				C_DOSTORE,
-	output reg [3:0]		C_WB_CODE,
+	output reg				C_ISALU,
+	output reg				C_ISBRANCH,
+	output reg 				C_ISLOAD,
+	output reg 				C_ISSTORE,
 	output reg				C_REG_AWVALID,
-	output reg 				C_CMEM,
 	// INDICATE WHETHER READS SHOULD HAPPEN IN ID_EX-stage
 	output reg 				C_REG1_MEMREAD,
 	output reg				C_REG2_MEMREAD,
+	output reg 				C_ISJAL,
+	output reg 				C_ISJALR,
+	output reg 				C_ISLUI,
+	output reg				C_ISAUIPC,
 
 	// REGISTER READ / WRITES
 	output [4:0] 			REG_ARADDR1,
@@ -52,7 +53,7 @@ module core_idecode #()
 	wire [6:0] funct7;
 	wire [4:0] reg_araddr1;
 	wire [4:0] reg_araddr2;
-	wire [6:0] opcode
+	wire [6:0] opcode;
 
 	assign opcode = INSTRUCTION[6:0];
 
@@ -72,6 +73,8 @@ module core_idecode #()
 			default: IMM_DEC = 32'hDEADBEEF;
 		endcase
 	end
+
+	// ISJAL / ISJALR 
 	
 	// FUNCT3/7
 	assign funct3 = INSTRUCTION[14:12];
@@ -85,87 +88,83 @@ module core_idecode #()
 // ASSIGN NEXT STATE DEPENDING ON WHETHER S_IFETCH WAS SUCCESFULL
 always @(*) begin
 	C_ISIMM = 1'b0;
-	C_ALU = 1'b0;
+	C_ISALU = 1'b0;
+	C_ISSTORE = 1'b0;
+	C_ISLOAD = 1'b0;
+	// REGISTER OPERATIONS
 	C_REG_AWVALID = 1'b0;
-	C_CMEM = 1'b0;
-	C_DOSTORE = 1'b0;
-	C_DOLOAD = 1'b0;
-	C_BRANCH = 1'b0;
-	C_REG_MEMREAD = 1'b0;
-	C_WB_CODE = `WB_CODE_NONE;
+	C_REG1_MEMREAD = 1'b0;
+	C_REG2_MEMREAD = 1'b0;
+	// PC JUMPS
+	C_ISBRANCH = 1'b0;
+	C_ISJALR = 1'b0;
+	C_ISJAL = 1'b0;
+	C_ISLUI = 1'b0;
+	C_ISAUIPC = 1'b0;
 	case (opcode)
 	`OPCODE_R: begin
-		C_ALU = 1'b1;
-		C_WB_CODE = `WB_CODE_ALU;
+		C_ISALU = 1'b1;
 		C_REG_AWVALID = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_ALU: begin
-		C_ALU = 1'b1;
-		C_WB_CODE = `WB_CODE_ALU;
+		C_ISALU = 1'b1;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_LOAD: begin
-		C_CMEM = 1'b1;
-		C_DOLOAD = 1'b1;
-		C_WB_CODE = `WB_CODE_LOAD;
+		C_ISLOAD = 1'b1;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 	end
 	`OPCODE_S: begin
-		C_CMEM = 1'b1;
-		C_DOSTORE = 1'b1;
-		C_WB_CODE = `WB_CODE_STORE;
+		C_ISSTORE = 1'b1;
 		C_ISIMM = 1'b1;
-		C_REG_MEMREAD = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_B: begin
-		C_BRANCH = 1'b1;
-		C_WB_CODE = `WB_CODE_BRANCH; // IF WB_CODE_BRANCH AND c_branch THEN take branch
+		C_ISBRANCH = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_J_JAL: begin
-		C_WB_CODE = `WB_CODE_JAL;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_ISJAL = 1'b1;
 	end
 	`OPCODE_I_JALR: begin
-		C_WB_CODE = `WB_CODE_JALR;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
+		C_ISJALR = 1'b1;
 		// FLAG TO INDICATE RS1+IMM -> PC instead of IMM += PC
 	end
 	`OPCODE_U_LUI: begin
-		C_WB_CODE = `WB_CODE_LUI;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_ISLUI = 1'b1;
 		// Make sure the imm is written here
 	end
 	`OPCODE_U_AUIPC: begin
-		C_WB_CODE = `WB_CODE_AUIPC;
 		C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
+		C_ISAUIPC = 1'b1;
 		// Make sure the imm + PC is written here
 	end
 	default: ;
 	endcase
 end
 
-	always @(posedge CLK)
+always @(posedge CLK)
 	begin
 		// FUNCT3/7
 		FUNCT3 <= funct3;
 		FUNCT7 <= funct7;
-		OPCODE <= opcode;
 	end
 endmodule
 

@@ -14,7 +14,7 @@ module core_alu (
     input [3:0]         OPCODE_ALU,
     input [31:0]        ALU_I1,
     input [31:0]        ALU_I2,
-    output reg [31:0]   ALU_O
+    output [31:0]       ALU_O
 );
 
 //! NOTE: ONLY the lower 5-bits are used for the shifts
@@ -26,9 +26,9 @@ wire [31:0] SRA_tmp_shifted_32;
 assign SRA_tmp = {{32{ALU_I1[31]}}, ALU_I1};
 assign SRA_tmp_shifted_64 = {SRA_tmp >> ALU_I2[4:0]};
 assign SRA_tmp_shifted_32 = SRA_tmp_shifted_64[31:0];
+
 // Take the relevant instruction, perform a switch-case
-wire [31:0] alu_o;
-assign alu_o = (OPCODE_ALU == `ALU_CODE_ADD) ? (ALU_I1 + ALU_I2) :
+assign ALU_O = (OPCODE_ALU == `ALU_CODE_ADD) ? (ALU_I1 + ALU_I2) :
                 (OPCODE_ALU == `ALU_CODE_SUB) ? (ALU_I1 - ALU_I2) :
                 (OPCODE_ALU == `ALU_CODE_XOR) ? (ALU_I1 ^ ALU_I2) :
                 (OPCODE_ALU == `ALU_CODE_OR) ? (ALU_I1 | ALU_I2) :
@@ -40,9 +40,4 @@ assign alu_o = (OPCODE_ALU == `ALU_CODE_ADD) ? (ALU_I1 + ALU_I2) :
                 (OPCODE_ALU == `ALU_CODE_SLTU) ? {{31{1'b0}}, {($unsigned(ALU_I1) < $unsigned(ALU_I2))}} :
                 32'hff_ff_ff_ff;
 
-always @(posedge CLK)
-begin
-    if (C_ALU)
-        ALU_O <= alu_o;
-end
 endmodule

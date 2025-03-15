@@ -47,7 +47,6 @@ module core_top #(
 
   // general
   wire [31:0] idex_imm;
-  wire [31:0] memwb_imm;
   wire isimm;
 
   // ALU COMMANDS
@@ -58,18 +57,16 @@ module core_top #(
   // REGISTER READ / WRITE
   wire reg_awvalid;
   wire [4:0] reg_awaddr, reg_araddr1, reg_araddr2;
-  wire [31:0] reg_rdata1, reg_rdata2;
+  wire [31:0] reg_rdata1, reg_rdata2, reg_wdata;
 
   // INSTRUCTION FETCH
   wire [31:0] instruction;
-  wire        hcu_pc_write;
-  wire [ 3:0] c_wb_code;  // On high -> PC update
+  wire        c_pc_write;
   wire [31:0] jump_imm;  // PC update number
-  wire [31:0] pc;
+  wire [31:0] pc, pc_next;
 
   // DATA MEMORY
-  wire c_doload, isloadbs, isloadhws;
-  wire c_dostore;
+  wire c_isstore, c_isload, isloadbs, isloadhws;
   wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
 
@@ -89,7 +86,6 @@ module core_top #(
   );
 
   // *** CONTROL UNIT ***
-  wire hcu_stallpipe;
   core_control #() core_control_inst (
       // CLK / NRST
       .CLK(CLK),
@@ -98,31 +94,30 @@ module core_top #(
 
       // PC Operations
       .PC(pc),
-      // BOTH PC UPDATE AND IMEM FETCH SHOULD ALWAYS HAPPEN UNLESS THE STALLPIPE IS ENABLED
-      .HCU_STALLPIPE(hcu_stallpipe),
-      .memwb_c_wb_code(c_wb_code),
-
+      .PC_NEXT(pc_next),
       // REGISTER OPERATIONS
       .memwb_c_reg_awvalid(reg_awvalid),
       .REG_ARADDR1(reg_araddr1),
       .REG_ARADDR2(reg_araddr2),
       .memwb_reg_awaddr(reg_awaddr),
+      .REG_WDATA(reg_wdata),
       .REG_RDATA1(reg_rdata1),
       .REG_RDATA2(reg_rdata2),
       .idex_imm(idex_imm),
-      .memwb_imm(memwb_imm),
-      .idex_c_alu(c_alu),
+      .ALU_O(alu_o),
+      .idex_c_isalu(c_alu),
       .OPCODE_ALU(opcode_alu),
       .idex_c_isimm(isimm),
 
       // MEMORY OPERATIONS (LOAD / STORE)
       .DMEM_ADDR(dmem_addr),
-      .exmem_c_doload(c_doload),
+      .DMEM_RDATA(dmem_rdata),
+      .exmem_c_isload(c_isload),
       .ISLOADBS(isloadbs),
       .ISLOADHWS(isloadhws),
-      .exmem_c_dostore(c_dostore),
+      .exmem_c_isstore(c_isstore),
       .STRB(dmem_strb),
-      .HCU_PC_WRITE(hcu_pc_write),
+      .HCU_PC_WRITE(c_pc_write),
 
       // AXI SIGNALS FOR CONTROL
       // > IMEM (READ ONLY)
@@ -151,7 +146,7 @@ module core_top #(
       .AXI_RRESP(IMEM_AXI_RRESP),
       .AXI_RVALID(IMEM_AXI_RVALID),
       .AXI_RREADY(IMEM_AXI_RREADY),  // Goes high when fetch succeeded
-      .PC_WRITE(hcu_pc_write),
+      .PC_WRITE(c_pc_write),
       .INSTRUCTION(instruction),
       .PC_NEXT(pc_next),
       .PC(pc)
@@ -187,11 +182,10 @@ module core_top #(
       .AXI_RVALID (HOST_AXI_RVALID),
       .AXI_RREADY (HOST_AXI_RREADY),
 
-      .C_DOLOAD (c_doload),
+      .C_ISLOAD (c_isload),
       .ISLOADBS (isloadbs),
       .ISLOADHWS(isloadhws),
-      .C_DOSTORE(c_dostore),
-      .HCU_STALLPIPE(hcu_stallpipe),
+      .C_ISSTORE(c_isstore),
 
       .ADDR (dmem_addr),
       .WDATA(reg_rdata2),
@@ -200,18 +194,6 @@ module core_top #(
   );
 
   // *** REGISTERS ***
-  // USE the c_wb_code to determine the reg_wdata in an always @-loop
-  reg [31:0] reg_wdata;
-  always @(*) begin
-    case (c_wb_code)
-      `WB_CODE_ALU: reg_wdata = alu_o;
-      `WB_CODE_JALR, `WB_CODE_JAL: reg_wdata = pc + 4;
-      `WB_CODE_LUI: reg_wdata = memwb_imm;
-      `WB_CODE_AUIPC: reg_wdata = pc + memwb_imm;
-      `WB_CODE_LOAD: reg_wdata = dmem_rdata;  //! PROBABLY WRONG BYTE ORDERING HERE
-      default: reg_wdata = 32'hDEADBEEF;
-    endcase
-  end
 
   core_registers #() registers_t (
       .CLK(CLK),

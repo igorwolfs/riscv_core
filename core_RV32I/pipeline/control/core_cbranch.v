@@ -5,7 +5,7 @@
 module core_cbranch (
 	input 		NRST,
 	input 		CLK,
-	input 		C_BRANCH,
+	input 		C_ISBRANCH,
 	// FUNCT3 DATA
 	input [2:0] FUNCT3,
 	// REGISTERS (assuming the correct register values are fetched)
@@ -16,7 +16,7 @@ module core_cbranch (
 );
 
 // * Branching conditions
-wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond, take_branch;
+wire br_eq, br_ne, br_blt, br_bge, br_bltu, br_bgeu, br_cond;
 // Make sure to check additional branch condition
 assign br_eq = (REG_RDATA1 == REG_RDATA2);
 assign br_ne = !br_eq;
@@ -30,12 +30,14 @@ assign br_bltu = ($unsigned(REG_RDATA1) < $unsigned(REG_RDATA2));
 assign br_bgeu = !br_bltu;
 
 // * Check if the branching condition is fulfilled
-assign TAKE_BRANCH = ((`FUNCT3_BEQ == FUNCT3) && (br_eq))
+wire take_branch;
+assign take_branch = ((`FUNCT3_BEQ == FUNCT3) && (br_eq))
                     || ((`FUNCT3_BNE == FUNCT3) && (br_ne))
                     || ((`FUNCT3_BLT == FUNCT3) && (br_blt))
                     || ((`FUNCT3_BGE == FUNCT3) && (br_bge))
                     || ((`FUNCT3_BLTU == FUNCT3) && (br_bltu))
                     || ((`FUNCT3_BGEU == FUNCT3) && (br_bgeu));
+assign TAKE_BRANCH = take_branch & C_ISBRANCH;
 
 endmodule
 

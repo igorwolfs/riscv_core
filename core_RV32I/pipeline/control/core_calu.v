@@ -2,7 +2,6 @@
 `include "define.vh"
 
 module core_calu (
-	input [6:0] 		OPCODE,
 	input [2:0] 		FUNCT3,
 	input [6:0] 		FUNCT7,
 	input [31:0] 		IMM,
