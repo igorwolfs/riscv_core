@@ -24,6 +24,7 @@ module core_hcu (
 	output reg HCU_IDEX_FLUSH,
 	output reg HCU_EXMEM_ENABLE,
 	output reg HCU_EXMEM_FLUSH,
+	output reg HCU_MEMWB_ENABLE,
 	output reg HCU_PC_WRITE // Fetch an instruction on each PC_WRITE
 );
 /*
@@ -73,6 +74,7 @@ begin
 	HCU_IFID_ENABLE = 1'b1;
 	HCU_IDEX_ENABLE = 1'b1;
 	HCU_EXMEM_ENABLE = 1'b1;
+	HCU_MEMWB_ENABLE = 1'b1;
 	HCU_PC_WRITE = 1'b1;
 	HCU_IFID_FLUSH = 1'b0;
 	HCU_IDEX_FLUSH = 1'b0;
@@ -84,6 +86,7 @@ begin
 	if (hcu_data_hazard | hcu_mem_hazard)
 	begin
 		HCU_PC_WRITE = 1'b0;
+		HCU_IFID_ENABLE = 1'b0;
 		if (HCU_EXMEM_ENABLE)
 		begin
 			HCU_IDEX_FLUSH = 1'b1;
@@ -92,13 +95,14 @@ begin
 		else
 			HCU_IDEX_ENABLE = 1'b0;
 	end
+	if (hcu_mem_hazard)
+		HCU_MEMWB_ENABLE = 1'b0;
+	
 	if (hcu_control_hazard)
 	begin
 		HCU_IDEX_FLUSH = 1'b1;
 		HCU_IFID_FLUSH = 1'b1;
 	end
-	if (!HCU_IMEM_DONE)
-		HCU_IFID_ENABLE = 1'b0;
 end
 
 // SIGNALS

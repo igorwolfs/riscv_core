@@ -51,8 +51,6 @@ module core_idecode #()
 	// SIGNALS
 	wire [2:0] funct3;
 	wire [6:0] funct7;
-	wire [4:0] reg_araddr1;
-	wire [4:0] reg_araddr2;
 	wire [6:0] opcode;
 
 	assign opcode = INSTRUCTION[6:0];
@@ -74,7 +72,7 @@ module core_idecode #()
 		endcase
 	end
 
-	// ISJAL / ISJALR 
+	// ISJAL / ISJALR
 	
 	// FUNCT3/7
 	assign funct3 = INSTRUCTION[14:12];

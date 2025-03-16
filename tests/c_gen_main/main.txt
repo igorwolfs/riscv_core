@@ -1,7 +1,6 @@
 
 main.elf:     file format elf32-littleriscv
 
-00028113
 008000ef
 00000013
 ff010113

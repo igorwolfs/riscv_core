@@ -47,7 +47,7 @@ module core_top #(
 
   // general
   wire [31:0] idex_imm;
-  wire isimm;
+  wire idex_c_isimm;
 
   // ALU COMMANDS
   wire c_alu;
@@ -58,7 +58,7 @@ module core_top #(
   wire reg_awvalid;
   wire [4:0] reg_awaddr, reg_araddr1, reg_araddr2;
   wire [31:0] reg_rdata1, reg_rdata2, reg_wdata;
-
+  wire [31:0] idex_reg_rdata1, idex_reg_rdata2;
   // INSTRUCTION FETCH
   wire [31:0] instruction;
   wire        c_pc_write, hcu_imem_busy;
@@ -76,8 +76,8 @@ module core_top #(
   // ************ UNITS *****************
 
   // *** ALU UNIT ***
-  assign alu_i1 = reg_rdata1;
-  assign alu_i2 = isimm ? idex_imm : reg_rdata2;
+  assign alu_i1 = idex_reg_rdata1;
+  assign alu_i2 = idex_c_isimm ? idex_imm : idex_reg_rdata2;
 
   core_alu #() alu_t (
       .CLK(CLK),
@@ -106,11 +106,13 @@ module core_top #(
       .REG_WDATA(reg_wdata),
       .REG_RDATA1(reg_rdata1),
       .REG_RDATA2(reg_rdata2),
+      .idex_reg_rdata1(idex_reg_rdata1),
+      .idex_reg_rdata2(idex_reg_rdata2),
       .idex_imm(idex_imm),
       .ALU_O(alu_o),
       .idex_c_isalu(c_alu),
       .OPCODE_ALU(opcode_alu),
-      .idex_c_isimm(isimm),
+      .idex_c_isimm(idex_c_isimm),
 
       // MEMORY OPERATIONS (LOAD / STORE)
       .DMEM_ADDR(dmem_addr),

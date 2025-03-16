@@ -23,8 +23,12 @@ module core_control (
     output [ 4:0] REG_ARADDR2,  // Which read register 2 to use
     output reg [ 4:0] memwb_reg_awaddr,   // Which register to write to
     output [31:0] REG_WDATA,
+
     input  [31:0] REG_RDATA1,
     input  [31:0] REG_RDATA2,
+
+    output reg [31:0] idex_reg_rdata1,
+    output reg [31:0] idex_reg_rdata2,
 
     // *** ALU SIGNALS
     output [3:0]        OPCODE_ALU,
@@ -74,7 +78,7 @@ module core_control (
   wire c_isjal, c_isjalr, c_isauipc, c_islui;
 
   // *** HCU WIRES ***
-  wire hcu_idex_enable, hcu_exmem_enable, hcu_idex_flush, hcu_exmem_flush;
+  wire hcu_idex_enable, hcu_exmem_enable, hcu_idex_flush, hcu_exmem_flush, hcu_memwb_enable;
 
   // ***********************************************************************
   // PIPELINE REGISTERS
@@ -86,8 +90,8 @@ module core_control (
   reg [31:0] ifid_pc, idex_pc, exmem_pc, memwb_pc;
 
   // *** REGISTER SIGNALS ***
-  reg [31:0] idex_reg_rdata1, exmem_reg_rdata1;
-  reg [31:0] idex_reg_rdata2, exmem_reg_rdata2;
+  reg [31:0] exmem_reg_rdata1; // (idex_reg_rdata1)
+  reg [31:0] exmem_reg_rdata2; // (idex_reg_rdata2)
   reg [4:0] idex_reg_awaddr, exmem_reg_awaddr;
   reg idex_c_reg_awvalid, exmem_c_reg_awvalid; // (o) idex_c_reg_awvalid
 
@@ -226,6 +230,7 @@ module core_control (
     .HCU_IDEX_FLUSH(hcu_idex_flush),
     .HCU_EXMEM_ENABLE(hcu_exmem_enable),
     .HCU_EXMEM_FLUSH(hcu_exmem_flush),
+    .HCU_MEMWB_ENABLE(hcu_memwb_enable),
     .HCU_PC_WRITE(HCU_PC_WRITE)
   );
 
@@ -415,7 +420,7 @@ begin
     memwb_pc <= 32'hDDDD;
     memwb_alu_o <= 32'b0;
   end
-  else
+  else if (hcu_memwb_enable) // MEMORY HAZARD
   begin
     // if store / load instruction
     memwb_reg_awaddr <= exmem_reg_awaddr;
@@ -434,6 +439,7 @@ begin
     memwb_pc <= exmem_pc;
     memwb_alu_o <= exmem_alu_o;
   end
+  else;
 end
 
 

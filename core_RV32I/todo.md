@@ -1,119 +1,99 @@
-## TODO
-- Now it seems we're dealing with some kind-of bus interconnect issue.
-	- The instruction being passed is "undefined" for some reason
-	- Check the interconnect, what signals are coming in, and the RAM
+## Third instruction = Progress
+- The instruction propagates to the last sttage
+- Nothing seems to be executed however?
+Does it wait for the previous instruction though?
+- The 0x8 is in fact waiting for the 0x4 to complete execution.
 
-## Issue with PC
-Now it seems the PC is jumping from 0x8 to 0x3 for some reason.
-- Let's check how the JAL instruction does now.
-- Now it seems like the isjal instruction isn't propagated at all for some reason.
-	- Which is correct
+So check the ALU signals, and check why some things aren't written when they are supposed to be
+- Check ALU_O as well
 
-Check the islui instruction and if it does what it should
- - The islui-instruction seems to propagate correctly
- - At the end of propagation
-	- LUI does load 0x40000 into the register
+- The RDATA actually gets latched a cycle after the write so this shouldn't be the cause
+- Check the RDATA1 and RDATA2
+- The value is probably transported through but the write is probably simply not enabled
 
-Addi
-- addi seems to still subtract 1 from 0x0 instead of stalling and using the value from 0x40000000 put there by the lui instruction.
-- Check if the ALU signal is propagated correctly
-- isalu seems to be propagating well through the pipeline
-- shortly after that it triggers again due to
-	- ADDI sp, t0, 0
-	- So t0 is moved here to the stack pointer
-## Is the pipeline stalled correctly?s
-- The add immediate should not be latched to idex before the wb is completed
-- Don't assert the data hazard if writing is not involved
-	- Should there also be a hazard in case the IDEX_REG_AWADDR == REG_ARADDR1 or REG_ARADDR2?
-	- When does the RDATA get latched? At the idex edge
-	- So before the rdata gets latched, we should trigger the hazard
-So if the idex_reg_awaddr sees a hazard in the RDATA1, RDATA2 the hazard signal should already be triggered
-- Then the idex should simply pass until the wb stage
-- When the wb stage is finished it should allow latching of the idex stage again.
-ALSO
-- A check should be done for mem_stage_creg_awvalid and mem_staage_awaddr != 0 before triggering a hazard
+## Stalling memwb
+The issue seems to be that the memwb_alu_o doesn't get written to the memwb-stage together with the program counter
+- the program counter is one step behind for some reason.
+- Or maybe it's not behind at all, maybe the alu_o latched is the wrong one for some reason.
 
-## Incremented PC to 40000000
-Now for some reason the PC is incremented to the LUI value.
-- So that means that 
-	- The PC_WRITE was enabled 
-	- There was a wrong idecode somewhere
+That is in fact correct.
 
-## HCU data hazard
-- Fix the HCU data hazard issue.
+- the idex_pc latched is 0x8.
+- The alu_o was 3fffffff already before the idex_pc latch to 0x8.
+- The 0x3fffffff doesn't get latched anymore 
 
-## PC update
-Why does the PC get updated
-Probably because of some invalid instruction passing through.
-- It seems like "deadbeef" is latched as an instruction.
-	- Why is the latching happening? 
-	- Is DONE set? Maybe not and maybe that's the issue
-	- Maybe the combinatorial instruction which is latched every clock cycle should only be latched when an instruction is fetched
-	- But then the busy should also be high which it's not
-		- So that indicates no current fetching?
-- Check the axi signals of imem
+Questions
+- Why does the ALU_O suddenly change without the idex_pc changing?
+	- I thought the rdata-indices actually changed on the idex edge only?
+	- Probably because the idex_pc does change, but it's just not visible
 
-### Issue
-- For some reason the PC_WRITE goes high
-	- PC write goes high 
-		- Signal for a new fetch to start
-		- Signal for a PC increment
-		- NOT a signal for an ifetch -> idecode transition.
-- IFID transition
-	- Happens every clock cycle
-	- Should happen ONLY after a valid instruction was fetched (so after IFETCH_BUSY goes low)
-	- So there should be a separate signal for this (on negedge IFETCH_BUSY -> update)
-	- Or on ALL IFETCH HIGH -> do update
-	- So only fetch an instruction on the data-valid
+## Find the earliest error
+- 0x28113 is fetched
+- 0x28113 is latched into ifid a cycle after the fetch
+- Then a data hazard occurs.
+- When the write is done the data-hazard is dropped
+	- HCU_PC_Write is held high
+- Then the PC write is triggered again
+	- ifid was latched
 
-### PC update
-Now the PC updates too quickly for some reason.
-- Now it seems that HCU_PC_WRITE is jsut 1 all the time
-- It seems that busy is just 0 all the time.
-
-WHY?
-- It seems like the data hazard is triggered on fetching the second instruction
-- The instruction the doesn't proceed through the pipeline
-- Because of this the data hazard signal stays high.
-- The issue seems to be that the 40002b7 instruction (PC 0) doesn't proceed through the pipeline
-	And therefor never does a WB
-ISSUE
-- So the IDEX Stall is enabled
-	- This means the idex register should not be updated with the next instruction
-	- It should be updated with a NOP
-	- BUT the instruction should still propagate
-- Because of that the idex doesn't propagate to the exmem.
+## Question
+- Is it normal that the ifid isn't enabled together with the other signals?
+- Doesn't that lead to errors?
+	- What if an instruction is latched, and the next instruction is decoded before the current one is latched or vice versa?
+	- Opposite side: it doesn't really matter probably because the instruction fetch latch always happens before everything else.
 
 
+## IFID JUMP
+Bow for some reason the IFID jumpst from 0 to 8.
+- This is probably because the HCU_PC_WRITE is enabled for 2 clock cycles while it should only be enabled for 1.
+- The HCU_PC_WRITE can ONLY be enabled when the idex stage is enabled
+	- I guess that is indeed what is happening now.
+	- But why is the idex and exmem stage enabled for 2 cycles, but the ifid isn't?
+	- I thought the instruction fetching itself (MEM_BUSY) should make everything stop working.
+- hcu_ifid_enabled is only enabled on done (so combinatorially)
+- Make sure to increment the PC at the exec edge? Ask chatgpt how this normally happens.
+The reality is you don't know if a PC will be ready at the IMEM_DONE time, so incrementing it then doesn't seem to make a lot of sense, especially when starting to add MEM_DONE operations.
 
-## ALU Issue
-Now for some reason the ALU doesn't indicate the sum was done for some reason.
-- For some reason the 0x4 doesn't propagate from idex_pc to exmem_pc
-- The memwb does propagate but for some reason doesn't show a value
-So for some reason the idex_pc deosn't propagate to the exmem stage while the ifid does propagate to the idex
+Or maybe not
+- The PC should be incremented in the IF stage
+- Add an extra register to store the instruction that was fetched.
 
-### Q
-Why is the hcu_exmem_enable not high? It should be high to enable updating the exmem from the idex
+### Fix the double-cycle instruction fetch
+- the problem is an ill-asserted hazard
+- In reality the done signal should have been asserted only once
+- And a memory hazard should have been asserted the rest of the time.
+- What I did
 
-- Because of an HCU memory hazard it raises it's not being updated
-- So we need to wait until the memory hazard is over.
-	- We need to keep track of the idex registers
-	- We need to make sure the execute step doesn't do aynthing for now
-		- Probably by inserting a NOP
-	- And then on the exmem_enable the idex instruction should be again passed on.
+## Issue with second instruction increment
+For some reason the instruction 0x4 latches registers late enough, hwoever the alu_o result doesn't correspond with the expected one.
+- Check the arguments of the alu-operation
+- check the alu output
 
-So:
-IF a stage is stalled, the next stage is not enabled
-- then we should simply keep stalling the stage
-IF a stage is stalled, the next stage is enabled
-- then we should flush the stage
+It seems like the data hazard signal suddenly stopped.
+On this stop the pipeline kept going.
+However:
+- the ifid instruction somehow bypassed the idex-stage?
+- The ALU_O signal was already 0x400000000 before the idex_pc was 0x4 How is that possible?
+- The IFID instruction kept steady
+- The idex_pc took over the ifid pc
+- So there all the updates went well?
 
-Example:
-- If the idex is stalled
-- the exmem is not enabled
-	- Then the idex should be flushed.
+It seems like the ALU_O suddenly just changed for no reason
+- the idex_reg_rdata1 is 0x4
+- the idex_pc is 0x4
+- So the alu_o should be 0x3fffffff
 
-- So now for some random reason there is an error in the way the immediate is transferred.
-- the c_islui is transferred one clock-edge later than the actual immediate
-- the pc is transferred 1 clock cycle after the immediate
-- So there is perhaps something wrong with the immediate latch?
+The imm_decode for some reason is 0xfffffffff?
+- It should be -1
+
+
+It seems like ALU_I1 was 0x40000000 and suddenly became 0x0 after the pipeline register updates.
+
+So with PC = 0x4 in the exmem state the situation should be
+- idex: reg_rdata1: 0x40000000 OK
+- idex: imm: 0xffffffff OK
+- The data_out should be 0x3fffffff
+
+But the ALU_I1 for some reason is 0x0 instead of idex_reg_rdata1. Why?
+
+00028113

@@ -21,7 +21,7 @@ module core_ifetch #(
 
 	// *** CONTROL SIGNAL INTERFACE ***
 	// INSTRUCTIONS
-	output [31:0] 				INSTRUCTION,
+	output reg [31:0] 			INSTRUCTION,
 	output reg					BUSY,
 	output	 					DONE,
 	// PC UPDATES
@@ -45,7 +45,6 @@ begin
 end
 
 assign DONE = (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00)) ? 1'b1 : 1'b0;
-assign INSTRUCTION = AXI_RDATA;
 assign AXI_ARADDR = PC;
 // ==========================
 // AXI READ ADDRESS CHANNEL
@@ -58,7 +57,7 @@ begin
 		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
 		BUSY <= 1; // (BUSY == 1) indicates the instruction-fetch is busy fetching -> Enable on reset since then instruction fetching restarts
-		// INSTRUCTION <= 32'h00000013;
+		INSTRUCTION <= 32'h00000013;
 	end
 	else if (PC_WRITE | BUSY) // Fetch an instruction on each PC_WRITE
 	begin
@@ -68,21 +67,21 @@ begin
 			AXI_ARVALID <= 1'b0;
 			AXI_RREADY <= 1'b0;
 			BUSY <= 1'b0; // Set instruction fetch to 0
-			// INSTRUCTION <= AXI_RDATA;
+			INSTRUCTION <= AXI_RDATA;
 		end
 		else
 		begin
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			BUSY <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
-			// INSTRUCTION <= 32'hDEADBEEF;
+			INSTRUCTION <= 32'h00000013;
 		end
 	end
 	else
 	begin
 		AXI_ARVALID <= 1'b0;
 		AXI_RREADY <= 1'b0;
-		// INSTRUCTION <= 32'hDEADBEEF;
+		INSTRUCTION <= 32'h00000013;
 	end
 end
 
