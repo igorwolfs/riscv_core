@@ -32,11 +32,11 @@ module core_mem #(
     output reg                  AXI_RREADY, // When high, indicates that load instruction is done
 
 	// ***  ***
-	input 						C_ISLOAD, 	// Indicates load instruction
-	input						ISLOADBS,	// 7th byte needs to be extended
-	input						ISLOADHWS,	// 16th byte needs to be extended
-	input						C_ISSTORE,	// Indicates store instruction
-	input						HCU_STALLPIPE,
+	output	 					BUSY,
+	input 						C_ISLOAD_SS, 	// Indicates load instruction
+	input						ISLOADBS,		// 7th byte needs to be extended
+	input						ISLOADHWS,		// 16th byte needs to be extended
+	input						C_ISSTORE_SS,	// Indicates store instruction
 	input  	[31:0] 				ADDR, 	// LOAD / STORE ADDRESS: reg1 + imm
 	input  	[31:0]				WDATA, 	// Data to be stored at ADDR
 	output 	[31:0]				RDATA, 	// Data to be read -> should be shifted and handled according to signals (ISLOAD/ISLOADU)
@@ -52,7 +52,7 @@ assign AXI_WSTRB = STRB;
 assign AXI_AWADDR = ADDR;
 assign AXI_WDATA = (STRB[0]) ? WDATA : (STRB[1]) ? WDATA << 8 : (STRB[2]) ? WDATA << 16 : WDATA << 24;
 
-reg isstore_en;
+reg busy_store;
 always @(posedge CLK)
 begin
 	if (!NRST)
@@ -60,23 +60,23 @@ begin
 		AXI_WVALID <= 1'b0;
 		AXI_AWVALID <= 1'b0;
 		AXI_BREADY <= 1'b0;
-		isstore_en <= 1'b0;
+		busy_store <= 1'b0;
 	end
-	else if (C_ISSTORE & (isstore_en | !HCU_STALLPIPE))
+	else if (C_ISSTORE_SS | busy_store)
 	begin
 		if (AXI_AWREADY & AXI_ARREADY & AXI_BVALID) // No response checking here
 		begin
-			isstore_en <= 1'b0;
 			AXI_WVALID <= 1'b0;
 			AXI_AWVALID <= 1'b0;
 			AXI_BREADY <= 1'b0;
+			busy_store <= 1'b0;
 		end
 		else
 		begin
-			isstore_en <= 1'b1;
 			AXI_WVALID <= 1'b1;
 			AXI_AWVALID <= 1'b1;
 			AXI_BREADY <= 1'b1;
+			busy_store <= 1'b1;
 		end
 	end
 	else
@@ -93,9 +93,6 @@ end
 // ==========================
 // READ REGISTER
 reg [31:0] reg_rdata;
-// DO MAGIC TO CHANGE THE READ INTO THE DESIRED BYTE FORMAT
-//! NOTE: maybe it's an idea to move this to the the memory controller later (just data in and out on full strobe, memory controller handles the rest)
-//! ALTHOUGH: it does mess things up for the write because having a strobe avoids the need for masking
 
 // SHIFT
 wire [7:0] byte_0, byte_1, byte_2, byte_3;
@@ -118,32 +115,31 @@ assign RDATA = (ISLOADBS) ? {{24{reg_rdata_sh[7]}}, reg_rdata_sh[7:0]} :
 
 assign AXI_ARADDR = ADDR;
 
-reg isload_en;
-
 // READ DATA CHANNEL (MASTER)
+reg busy_load;
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
 		AXI_ARVALID <= 1'b0;
 		AXI_RREADY <= 1'b0;
-		isload_en <= 1'b0;
+		busy_load <= 1'b0;
 	end
-	else if (C_ISLOAD & (isload_en | !HCU_STALLPIPE))
+	else if (C_ISLOAD_SS | busy_load)
 	begin
 		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 		begin
-			isload_en <= 1'b0;
 			AXI_ARVALID <= 1'b0;
 			AXI_RREADY <= 1'b0;
 			reg_rdata <= AXI_RDATA;
+			busy_load <= 1'b0;
 		end
 		else
 		begin
-			isload_en <= 1'b1;
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			reg_rdata <= 32'hDEADBEEF;
+			busy_load <= 1'b1;
 		end
 	end
 	else
@@ -154,19 +150,8 @@ begin
 	end
 end
 
+assign BUSY = (busy_load | busy_store);
+
 endmodule
 
-/**
-This module is supposed to be
-- An AXI master communicating with the data-memory
-- Supposed to perform LOAD / STORES based on register inputs + STRB from control circuit
-- Load
-	- strobe
-	- 32-bit value out (shifted to the right depending on the strobe)
-	- We should know here whether we are dealing with
-		- signed or unsigned partial load -> if its unsigned the data should be extended first before its output to the registers
-- Store
-	- strobe
-	- 32-bit rs2-value in
-	- Sets the relevant strobe values
-*/
+//! NOTE: load and store signal must only be triggered for 1 cycle (otherwise bus keeps fetching)

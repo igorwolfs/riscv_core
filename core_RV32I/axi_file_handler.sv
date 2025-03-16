@@ -45,7 +45,7 @@ string sig_path;
 initial
 begin
     $display("Initializing sigwrite module");
-    if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.sig";
+    if (!$value$plusargs("SIG_PATH=%s", sig_path)) sig_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_main/my.sig";
     // "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.sig";
     // "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.sig";
 	file = $fopen(sig_path, "w");
@@ -84,7 +84,7 @@ begin
 				AXI_WREADY <= 1'b1;
 				AXI_BVALID <= 1'b1;
 				AXI_BRESP <= 2'b00;
-				if (AXI_AWADDR == ADDR_WRITE_TO_FILE) 
+				if (AXI_AWADDR == ADDR_WRITE_TO_FILE)
                 begin
                     $display("WRITING TO FILE!\r\n");
 					$fwrite(file, "%h\n", AXI_WDATA);

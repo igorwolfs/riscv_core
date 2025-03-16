@@ -61,15 +61,18 @@ module core_top #(
 
   // INSTRUCTION FETCH
   wire [31:0] instruction;
-  wire        c_pc_write;
+  wire        c_pc_write, hcu_imem_busy;
   wire [31:0] jump_imm;  // PC update number
   wire [31:0] pc, pc_next;
 
   // DATA MEMORY
-  wire c_isstore, c_isload, isloadbs, isloadhws;
+  wire c_isstore, c_isload, isloadbs, isloadhws, hcu_dmem_busy;
   wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
 
+  wire hcu_mem_busy, hcu_imem_done;
+
+  assign hcu_mem_busy = hcu_dmem_busy | hcu_imem_busy;
   // ************ UNITS *****************
 
   // *** ALU UNIT ***
@@ -112,27 +115,18 @@ module core_top #(
       // MEMORY OPERATIONS (LOAD / STORE)
       .DMEM_ADDR(dmem_addr),
       .DMEM_RDATA(dmem_rdata),
-      .exmem_c_isload(c_isload),
+      .C_ISLOAD_SS(c_isload),
       .ISLOADBS(isloadbs),
       .ISLOADHWS(isloadhws),
-      .exmem_c_isstore(c_isstore),
+      .C_ISSTORE_SS(c_isstore),
       .STRB(dmem_strb),
       .HCU_PC_WRITE(c_pc_write),
-
-      // AXI SIGNALS FOR CONTROL
-      // > IMEM (READ ONLY)
-      .IMEM_AXI_RVALID (IMEM_AXI_RVALID),
-      .IMEM_AXI_ARREADY(IMEM_AXI_ARREADY),
-      // > DMEM (LOAD / STORE)
-      .HOST_AXI_RVALID (HOST_AXI_RVALID),
-      .HOST_AXI_RREADY (HOST_AXI_RREADY),
-      .HOST_AXI_BVALID (HOST_AXI_BVALID),
-      .HOST_AXI_BREADY (HOST_AXI_BREADY)
+      .HCU_MEM_BUSY(hcu_mem_busy),
+      .HCU_IMEM_DONE(hcu_imem_done)
   );
 
 
   // *** INSTRUCTION FETCH (AXI MASTER) ***
-
   core_ifetch #(
       .AXI_AWIDTH(AXI_AWIDTH),
       .AXI_DWIDTH(AXI_DWIDTH)
@@ -148,12 +142,13 @@ module core_top #(
       .AXI_RREADY(IMEM_AXI_RREADY),  // Goes high when fetch succeeded
       .PC_WRITE(c_pc_write),
       .INSTRUCTION(instruction),
+      .BUSY(hcu_imem_busy),
+      .DONE(hcu_imem_done),
       .PC_NEXT(pc_next),
       .PC(pc)
   );
 
   // *** MEMORY CONTROLLER (AXI MASTER) ***
-
   core_mem #(
       .AXI_AWIDTH(AXI_AWIDTH),
       .AXI_DWIDTH(AXI_DWIDTH)
@@ -182,10 +177,13 @@ module core_top #(
       .AXI_RVALID (HOST_AXI_RVALID),
       .AXI_RREADY (HOST_AXI_RREADY),
 
-      .C_ISLOAD (c_isload),
+      .BUSY(hcu_dmem_busy),
+
       .ISLOADBS (isloadbs),
       .ISLOADHWS(isloadhws),
-      .C_ISSTORE(c_isstore),
+
+      .C_ISSTORE_SS(c_isstore),
+      .C_ISLOAD_SS(c_isload),
 
       .ADDR (dmem_addr),
       .WDATA(reg_rdata2),
@@ -193,8 +191,8 @@ module core_top #(
       .STRB (dmem_strb)
   );
 
-  // *** REGISTERS ***
 
+  // *** REGISTERS ***
   core_registers #() registers_t (
       .CLK(CLK),
       .NRST(NRST),            // SYS
@@ -234,6 +232,5 @@ REFACTORING:
   - MEMORY / AXI INTERFACE:
   - ALU
   - REGISTER FILE
-  - 
 
 */

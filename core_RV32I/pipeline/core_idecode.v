@@ -104,19 +104,22 @@ always @(*) begin
 	case (opcode)
 	`OPCODE_R: begin
 		C_ISALU = 1'b1;
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_ALU: begin
 		C_ISALU = 1'b1;
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 	end
 	`OPCODE_I_LOAD: begin
 		C_ISLOAD = 1'b1;
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 	end
@@ -133,28 +136,29 @@ always @(*) begin
 		C_REG2_MEMREAD = 1'b1;
 	end
 	`OPCODE_J_JAL: begin
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_ISJAL = 1'b1;
 	end
 	`OPCODE_I_JALR: begin
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_REG1_MEMREAD = 1'b1;
 		C_ISJALR = 1'b1;
-		// FLAG TO INDICATE RS1+IMM -> PC instead of IMM += PC
 	end
 	`OPCODE_U_LUI: begin
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_ISLUI = 1'b1;
-		// Make sure the imm is written here
 	end
 	`OPCODE_U_AUIPC: begin
-		C_REG_AWVALID = 1'b1;
+		if (REG_AWADDR != 5'h0)
+			C_REG_AWVALID = 1'b1;
 		C_ISIMM = 1'b1;
 		C_ISAUIPC = 1'b1;
-		// Make sure the imm + PC is written here
 	end
 	default: ;
 	endcase
@@ -162,7 +166,6 @@ end
 
 always @(posedge CLK)
 	begin
-		// FUNCT3/7
 		FUNCT3 <= funct3;
 		FUNCT7 <= funct7;
 	end

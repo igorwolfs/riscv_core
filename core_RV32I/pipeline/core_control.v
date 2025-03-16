@@ -11,8 +11,7 @@ TOP control module must
 	- PC increment
 */
 
-module core_control #(
-) (
+module core_control (
     input    CLK, NRST,
     // *** INSTRUCTION FETCH SIGNALS
     input [31:0]  INSTRUCTION,
@@ -42,28 +41,19 @@ module core_control #(
 
     output HCU_PC_WRITE,
 
-    // *** INSTRUCTION MEMORY AXI SIGNALS
-    // And for read valid
-    input IMEM_AXI_RVALID,
-    input IMEM_AXI_ARREADY,
-
-    // *** DATA MEMORY AXI SIGNALS
-    // Write valid
-    input HOST_AXI_RVALID,
-    input HOST_AXI_RREADY,
-    // Read valid
-    input HOST_AXI_BVALID,
-    input HOST_AXI_BREADY,
-
     // *** CONTROL SIGNALS
     // Instruction fetch should always happen unless stall happens.
     // And make the imem finish to avoid occupying the bus continuously in case of a memory fetch.
     // PC Should be updated every clock-cycle if not in stall-mode.
     output reg C_PC_UPDATE,
     output reg  memwb_c_reg_awvalid,
-    output reg  exmem_c_isload,
-    output reg  exmem_c_isstore,
-    output reg  idex_c_isalu
+    output  C_ISLOAD_SS,
+    output  C_ISSTORE_SS,
+    output reg  idex_c_isalu,
+
+    // *** INSTRUCTION / DATA MEMORY HCU SIGNALS
+    input HCU_MEM_BUSY,
+    input HCU_IMEM_DONE
 );
 
   // ***********************************************************************
@@ -86,19 +76,14 @@ module core_control #(
   // *** HCU WIRES ***
   wire hcu_idex_enable, hcu_exmem_enable, hcu_idex_flush, hcu_exmem_flush;
 
-  // Signal indications for memory operations (imem and cmem)
-  wire c_imem_done, c_mem_done;
-  
-  assign c_imem_done = IMEM_AXI_RVALID & IMEM_AXI_ARREADY;
-  assign c_mem_done = ((HOST_AXI_RREADY & HOST_AXI_RVALID) | (HOST_AXI_BVALID & HOST_AXI_BREADY));
-
-
   // ***********************************************************************
   // PIPELINE REGISTERS
   // ***********************************************************************
+  // *** INSTRUCTION ***
+  reg [31:0] ifid_instruction;
 
   // *** PC ***
-  reg [31:0] idex_pc, exmem_pc, memwb_pc;
+  reg [31:0] ifid_pc, idex_pc, exmem_pc, memwb_pc;
 
   // *** REGISTER SIGNALS ***
   reg [31:0] idex_reg_rdata1, exmem_reg_rdata1;
@@ -114,8 +99,8 @@ module core_control #(
   reg exmem_c_isalu, memwb_c_isalu; // (o) idex_c_isalu
 
   // *** MEM ***
-  reg idex_c_isload, memwb_c_isload;// (o) exmem_c_isload
-  reg idex_c_isstore; // (o) exmem_c_isstore
+  reg idex_c_isload, exmem_c_isload, memwb_c_isload;//
+  reg idex_c_isstore, exmem_c_isstore; // 
 
   // *** BRANCHING / JUMPS ***
   reg idex_c_isauipc, exmem_c_isauipc, memwb_c_isauipc;
@@ -132,7 +117,7 @@ module core_control #(
   core_idecode core_idecode_inst (
       .CLK(CLK),
       .NRST(NRST),
-      .INSTRUCTION(INSTRUCTION),
+      .INSTRUCTION(ifid_instruction),
       .FUNCT3(funct3),
       .FUNCT7(funct7),
       .IMM_DEC(imm_dec),
@@ -184,7 +169,12 @@ module core_control #(
       .DMEM_ADDR(DMEM_ADDR),
       .ISLOADBS(ISLOADBS),
       .ISLOADHWS(ISLOADHWS),
-      .STRB(STRB)
+      .STRB(STRB),
+      .BUSY(HCU_MEM_BUSY),
+      .EXMEM_C_ISSTORE(exmem_c_isstore),
+      .EXMEM_C_ISLOAD(exmem_c_isload),
+      .ISSTORE_SS(C_ISSTORE_SS),
+      .ISLOAD_SS(C_ISLOAD_SS)
   );
 
   // Happened isjal -> isjalr
@@ -219,9 +209,19 @@ module core_control #(
     .REG_ARADDR2(REG_ARADDR2),
     .C_REG1_MEMREAD(c_reg1_memread),
     .C_REG2_MEMREAD(c_reg2_memread),
+    .IDEX_REG_AWADDR(idex_reg_awaddr),
+    .IDEX_REG_AWVALID(idex_c_reg_awvalid),
     .EXMEM_REG_AWADDR(exmem_reg_awaddr),
+    .EXMEM_REG_AWVALID(exmem_c_reg_awvalid),
     .MEMWB_REG_AWADDR(memwb_reg_awaddr),
+    .MEMWB_REG_AWVALID(memwb_c_reg_awvalid),
     .C_TAKE_BRANCH(c_take_branch),
+    .ISJAL(idex_c_isjal),
+    .ISJALR(idex_c_isjalr),
+    .HCU_MEM_BUSY(HCU_MEM_BUSY),
+    .HCU_IMEM_DONE(HCU_IMEM_DONE),
+    .HCU_IFID_ENABLE(hcu_ifid_enable),
+    .HCU_IFID_FLUSH(hcu_ifid_flush),
     .HCU_IDEX_ENABLE(hcu_idex_enable),
     .HCU_IDEX_FLUSH(hcu_idex_flush),
     .HCU_EXMEM_ENABLE(hcu_exmem_enable),
@@ -265,16 +265,63 @@ module core_control #(
   */
 
   // *** SYNCHRONOUS LOGIC ***
+
+  // IFID
+
+  always @(posedge CLK)
+  begin
+    if (!NRST | hcu_ifid_flush)
+    begin
+      ifid_pc <= 32'hA;
+      ifid_instruction <= 32'h13;
+    end
+    else
+    begin
+      if (hcu_ifid_enable)
+      begin
+        ifid_pc <= PC;
+        ifid_instruction <= INSTRUCTION;
+      end
+      else;
+    end
+  end
   // IDEX
   always @(posedge CLK)
   begin
-    if (hcu_idex_enable) // MAKE SURE
+    if (!NRST | hcu_idex_flush)
     begin
-      //! IDEX
+        // IF R-ALU or I-ALU or STORE or LOAD
+      idex_reg_rdata1 <= 32'b0;
+      idex_reg_rdata2 <= 32'b0;
+      idex_reg_awaddr <= 5'b0;
+      idex_c_reg_awvalid <= 1'b0;
+
+      // IF BRANCHING
+      idex_imm <= 32'hAAAA;
+      idex_c_isimm <= 1'b0;
+
+      // CONTROL SIGNALS
+      idex_c_isbranch <= 1'b0;
+      idex_c_isalu <= 1'b0;
+      idex_c_isjalr <= 1'b0;
+      idex_c_isjal <= 1'b0;
+      idex_c_islui <= 1'b0;
+      idex_c_isauipc <= 1'b0;
+      idex_c_isload <= 1'b0;
+
+      idex_c_isload <= 1'b0;
+      idex_c_isstore <= 1'b0;
+
+      // PROGRAM COUNTER
+      idex_pc <= 32'hAAAA;
+    end
+    else if (hcu_idex_enable)
+    begin
       // IF R-ALU or I-ALU or STORE or LOAD
       idex_reg_rdata1 <= REG_RDATA1;
       idex_reg_rdata2 <= REG_RDATA2;
       idex_reg_awaddr <= reg_awaddr;
+      idex_c_reg_awvalid <= c_reg_awvalid;
 
       // IF BRANCHING
       idex_imm <= imm_dec;
@@ -283,68 +330,111 @@ module core_control #(
       // CONTROL SIGNALS
       idex_c_isbranch <= c_isbranch;
       idex_c_isalu <= c_isalu;
+      idex_c_isjalr <= c_isjalr;
+      idex_c_isjal <= c_isjal;
+      idex_c_islui <= c_islui;
+      idex_c_isauipc <= c_isauipc;
       idex_c_isload <= c_isload;
-      idex_c_isstore <= c_isstore;
-      idex_c_reg_awvalid <= c_reg_awvalid;
 
       // PROGRAM COUNTER
-      idex_pc <= PC;
-    end
-    else if (hcu_idex_flush)
-      begin
-        idex_reg_rdata1 <= 0;
-        idex_reg_rdata2 <= 0;
-        idex_reg_awaddr <= 0;
-        idex_imm <= 0;
-        idex_c_isimm <= 1;
-        idex_c_isbranch <= 0;
-        idex_c_isalu <= 0;
-        idex_c_isload <= 0;
-        idex_c_isstore <= 0;
-        idex_c_reg_awvalid <= 1;
-      end
-    else;
-    if (hcu_exmem_enable)
+      idex_pc <= ifid_pc;
+  end
+  else; // STALL
+end
+
+always @(posedge CLK)
+begin
+    if (!NRST | hcu_exmem_flush)
     begin
+      exmem_reg_rdata1 <= 32'b0;
+      exmem_reg_rdata2 <= 32'b0;
+      exmem_reg_awaddr <= 5'b0;
+      exmem_c_reg_awvalid <= 1'b0;
+
+      // Control signals
+      exmem_c_isload <= 1'b0;
+      exmem_c_isstore <= 1'b0;
+      exmem_c_isalu <= 1'b0;
+      exmem_c_isauipc <= 1'b0;
+      exmem_c_islui <= 1'b0;
+      exmem_c_isjal <= 1'b0;
+      exmem_c_isjalr <= 1'b0;
+
+      // Other
+      exmem_c_take_branch <= 1'b0;
+      exmem_alu_o <= 32'hBBBB;
+      exmem_pc <= 32'hBBBB;
+      exmem_imm <= 32'hBBBB;
+    end
+    else if (hcu_exmem_enable)
+      begin
       //! EXMEM
       // if store / load instruction
+      exmem_reg_rdata1 <= idex_reg_rdata1;
       exmem_reg_rdata2 <= idex_reg_rdata2;
       exmem_reg_awaddr <= idex_reg_awaddr;
+      exmem_c_reg_awvalid <= idex_c_reg_awvalid;
+
       // IF branching store / load
-      exmem_imm <= imm_dec;
-      exmem_c_take_branch <= c_take_branch;
       exmem_c_isload <= idex_c_isload;
       exmem_c_isstore <= idex_c_isstore;
-      exmem_c_reg_awvalid <= idex_c_reg_awvalid;
       exmem_c_isalu <= idex_c_isalu;
+      exmem_c_isauipc <= idex_c_isauipc;
+      exmem_c_islui <= idex_c_islui;
+      exmem_c_isjal <= idex_c_isjal;
+      exmem_c_isjalr <= idex_c_isjalr;
+
+
+      // Other
+      exmem_c_take_branch <= c_take_branch;
       exmem_alu_o <= ALU_O;
-      // PROGRAM COUNTER
       exmem_pc <= idex_pc;
+      exmem_imm <= idex_imm;
     end
-    else if (hcu_exmem_flush)
-      begin
-        exmem_reg_rdata1 <= 0;
-        exmem_reg_rdata2 <= 0;
-        exmem_reg_awaddr <= 0;
-        exmem_imm <= 0;
-        exmem_c_isload <= 0;
-        exmem_c_isstore <= 0;
-        exmem_c_reg_awvalid <= 1;
-        exmem_c_isalu <= 0;
-        exmem_alu_o <= 32'b0;
-      end
     else;
-    //! MEMWB
-    // For any instruction except branch and store (since no write to register is done there)
+end
+
+always @(posedge CLK)
+begin
+  if (!NRST)
+  begin
+    // if store / load instruction
+    memwb_reg_awaddr <= 1'b0;
+    memwb_c_reg_awvalid <= 1'b0;
+
+    // IF branching store / load
+    memwb_c_isload <= 1'b0;
+    memwb_c_isalu <= 1'b0;
+    memwb_c_isauipc <= 1'b0;
+    memwb_c_islui <= 1'b0;
+    memwb_c_isjal <= 1'b0;
+    memwb_c_isjalr <= 1'b0;
+
+    // Other
+    memwb_imm <= 32'hDDDD;
+    memwb_pc <= 32'hDDDD;
+    memwb_alu_o <= 32'b0;
+  end
+  else
+  begin
+    // if store / load instruction
     memwb_reg_awaddr <= exmem_reg_awaddr;
-    // For any instruction where the PC is changed using imm
-    memwb_imm <= exmem_imm;
     memwb_c_reg_awvalid <= exmem_c_reg_awvalid;
-    memwb_c_isalu <= exmem_c_isalu;
-    memwb_pc <= exmem_pc;
+
+      // IF branching store / load
     memwb_c_isload <= exmem_c_isload;
+    memwb_c_isalu <= exmem_c_isalu;
+    memwb_c_isauipc <= exmem_c_isauipc;
+    memwb_c_islui <= exmem_c_islui;
+    memwb_c_isjal <= exmem_c_isjal;
+    memwb_c_isjalr <= exmem_c_isjalr;
+
+    // Other
+    memwb_imm <= exmem_imm;
+    memwb_pc <= exmem_pc;
     memwb_alu_o <= exmem_alu_o;
   end
+end
 
 
 endmodule

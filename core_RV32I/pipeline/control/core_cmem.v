@@ -13,7 +13,12 @@ module core_cmem (
 	output [31:0] 		DMEM_ADDR, 		// Calculated from immediate
 	output reg 			ISLOADBS,
 	output reg 			ISLOADHWS,
-	output reg [3:0] 	STRB
+	output reg [3:0] 	STRB,
+	input 				BUSY,
+	input 				EXMEM_C_ISSTORE,
+	input				EXMEM_C_ISLOAD,
+	output reg 			ISSTORE_SS,
+	output reg 			ISLOAD_SS
 );
 
 // DETERMINE WHETHER LOAD / STORE
@@ -85,6 +90,35 @@ begin
 		ISLOADHWS <= 1'b0;
 		STRB <= 4'b0000;
 	end
+end
+
+// * Create single cycle Load / Store signal for memory stages
+always @(posedge CLK)
+begin
+	if (!NRST)
+	begin
+		ISLOAD_SS <= 1'b0;
+	end
+	else if (EXMEM_C_ISLOAD & !BUSY) // SS LATCH
+	begin
+		ISLOAD_SS <= 1'b1;
+	end
+	else
+		ISLOAD_SS <= 1'b0;
+end
+
+always @(posedge CLK)
+begin
+	if (!NRST)
+	begin
+		ISSTORE_SS <= 1'b0;
+	end
+	else if (EXMEM_C_ISSTORE & !BUSY) // SS LATCH
+	begin
+		ISSTORE_SS <= 1'b1;
+	end
+	else
+		ISSTORE_SS <= 1'b0;
 end
 
 endmodule

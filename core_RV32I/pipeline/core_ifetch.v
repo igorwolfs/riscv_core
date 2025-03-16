@@ -1,6 +1,5 @@
 `timescale 1ns/10ps
 
-
 module core_ifetch #(
 	parameter PC_INIT = 32'h0,
     parameter AXI_AWIDTH = 4,
@@ -22,7 +21,9 @@ module core_ifetch #(
 
 	// *** CONTROL SIGNAL INTERFACE ***
 	// INSTRUCTIONS
-	output reg [31:0] 			INSTRUCTION,
+	output [31:0] 				INSTRUCTION,
+	output reg					BUSY,
+	output	 					DONE,
 	// PC UPDATES
 	input						PC_WRITE,
 	input [31:0]				PC_NEXT,
@@ -36,7 +37,6 @@ begin
 	if (!NRST)
 		PC <= PC_INIT;
 	else
-	// ONLY INCREMENT IF FETCHING ISN'T IN PROGRESS => PC_INCR should be controlled by control circuitry, triggered at the end of the pipeline cycle
 	begin
 		if (PC_WRITE)
 			PC <= PC_NEXT;
@@ -44,41 +44,37 @@ begin
 	end
 end
 
+assign DONE = (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00)) ? 1'b1 : 1'b0;
+assign INSTRUCTION = AXI_RDATA;
 assign AXI_ARADDR = PC;
-
 // ==========================
 // AXI READ ADDRESS CHANNEL
 // ==========================
-
-// Make sure to latch HCU_STALLPIPE somewhere and only continue fetching if it (or it's latch) is enabled
-// Make sure to set the register back to 0 on success
-
-reg ifetch_en;
 
 always @(posedge CLK)
 begin
 	if (!NRST)
 	begin
-		ifetch_en <= 0;
 		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
-		INSTRUCTION <= 32'hDEADBEEF;
+		BUSY <= 1; // (BUSY == 1) indicates the instruction-fetch is busy fetching -> Enable on reset since then instruction fetching restarts
+		// INSTRUCTION <= 32'h00000013;
 	end
-	else if (PC_WRITE || ifetch_en)
+	else if (PC_WRITE | BUSY) // Fetch an instruction on each PC_WRITE
 	begin
 		// Always ready to receive instructions on C_INSTR_FETCH
 		if (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00))
 		begin
 			AXI_ARVALID <= 1'b0;
 			AXI_RREADY <= 1'b0;
-			ifetch_en <= 1'b0; // Set instruction fetch to 0
-			INSTRUCTION <= AXI_RDATA;
+			BUSY <= 1'b0; // Set instruction fetch to 0
+			// INSTRUCTION <= AXI_RDATA;
 		end
 		else
 		begin
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
-			ifetch_en <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
+			BUSY <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
 			// INSTRUCTION <= 32'hDEADBEEF;
 		end
 	end
@@ -94,10 +90,6 @@ endmodule
 
 
 /**
-- PC register
-SIGNALS
-- IMEM AXI bus
-- isbranch + branch_incr
-- isjump + jump_incr
-
+We need a separate instruction fetch signal which lasts 1 clock cycle
+- It should trigger at the beginning of each 
 */

@@ -2,12 +2,14 @@
 ## ALU R instruction
 0. Instruction fetch
 	- Get AXI_RDATA
+
 0->1
 - Instruction-latched (INSTRUCTION <= AXI_RDATA)
 
 1. Instruction decode:
 	- Combinatorial
 		- reg1_read, reg2_read
+
 1->2
 - reg1_read, reg2_read latched in register for next
 - funct3, funct7, opcode (needed only in next stage)
@@ -17,6 +19,7 @@
 	- Combinatorial 
 		- calu val decode from funct, imm, opcode
 		- Combinatorial setting alui1, alui2
+
 2->4
 - alu-enable to latch alu_out (needed only in next stage)
 

@@ -7,9 +7,7 @@ SRC_DIRS := ${CPU_DIR} ${VHDL_LIBS}
 SRC_FILE := $(shell find $(SRC_DIRS) -name '*.v') $(shell find $(SRC_DIRS) -name '*.sv') \
 			$(shell find $(SRC_DIRS) -name '*.vh') $(shell find $(SRC_DIRS) -name '*.svh')
 
-ifeq (${TESTBENCH_NAME}, control_tb)
-    CPP_FILE = sim_main_control.cpp
-else ifeq (${TESTBENCH_NAME}, top_tb)
+ifeq (${TESTBENCH_NAME}, top_tb)
     CPP_FILE = sim_top_main.cpp
 else
     CPP_FILE = INVALID_TOP_NAME
