@@ -64,36 +64,22 @@ Or maybe not
 - And a memory hazard should have been asserted the rest of the time.
 - What I did
 
-## Issue with second instruction increment
-For some reason the instruction 0x4 latches registers late enough, hwoever the alu_o result doesn't correspond with the expected one.
-- Check the arguments of the alu-operation
-- check the alu output
 
-It seems like the data hazard signal suddenly stopped.
-On this stop the pipeline kept going.
-However:
-- the ifid instruction somehow bypassed the idex-stage?
-- The ALU_O signal was already 0x400000000 before the idex_pc was 0x4 How is that possible?
-- The IFID instruction kept steady
-- The idex_pc took over the ifid pc
-- So there all the updates went well?
+## Issue with third instruction
+- Dat ahazard not asserted
+- Instruction is present at the ifid_pc
+	- This is where the data hazard should be asserted when seeing the instruction at the idex_pc.
+	- Only a memory hazard is asserted however
+add t0 to 0 and put to program counter
+So the reg1_raddr should be t0 (x5)
+This should conflict with the waddr of the 0x4 instruction (also x5)
 
-It seems like the ALU_O suddenly just changed for no reason
-- the idex_reg_rdata1 is 0x4
-- the idex_pc is 0x4
-- So the alu_o should be 0x3fffffff
-
-The imm_decode for some reason is 0xfffffffff?
-- It should be -1
+Because of the if REG_RADDR_1 == REG_WADDR_IDEX OR REG_RADDR_2 == REG_WADDR_IDEX etc..
+Now for some reason REG_ARADDR1 and REG_ARADDR2 are both 0
+because a nop instruction was inserted, but the PC is 0x8 what?
+For some reason the instruction out turned to 0x13 although it was latched to the correct 0x28113 before.
+There was no write involved.
 
 
-It seems like ALU_I1 was 0x40000000 and suddenly became 0x0 after the pipeline register updates.
-
-So with PC = 0x4 in the exmem state the situation should be
-- idex: reg_rdata1: 0x40000000 OK
-- idex: imm: 0xffffffff OK
-- The data_out should be 0x3fffffff
-
-But the ALU_I1 for some reason is 0x0 instead of idex_reg_rdata1. Why?
 
 00028113

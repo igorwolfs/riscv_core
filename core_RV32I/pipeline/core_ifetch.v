@@ -74,14 +74,14 @@ begin
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			BUSY <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
-			INSTRUCTION <= 32'h00000013;
+			// INSTRUCTION <= 32'h00000013;
 		end
 	end
 	else
 	begin
 		AXI_ARVALID <= 1'b0;
 		AXI_RREADY <= 1'b0;
-		INSTRUCTION <= 32'h00000013;
+		// INSTRUCTION <= 32'h00000013;
 	end
 end
 
