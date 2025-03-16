@@ -80,11 +80,16 @@ begin
 	HCU_IDEX_FLUSH = 1'b0;
 	HCU_EXMEM_FLUSH = 1'b0;
 
-	if (hcu_mem_hazard)
-		HCU_EXMEM_ENABLE = 1'b0;
-
-	if (hcu_data_hazard | hcu_mem_hazard)
+	if (hcu_control_hazard)
 	begin
+		HCU_IDEX_FLUSH = 1'b1;
+		HCU_IFID_FLUSH = 1'b1;
+	end
+	else if (hcu_data_hazard | hcu_mem_hazard)
+	begin
+		if (hcu_mem_hazard)
+			HCU_EXMEM_ENABLE = 1'b0;
+
 		HCU_PC_WRITE = 1'b0;
 		HCU_IFID_ENABLE = 1'b0;
 		if (HCU_EXMEM_ENABLE)
@@ -94,14 +99,6 @@ begin
 		end
 		else
 			HCU_IDEX_ENABLE = 1'b0;
-	end
-	if (hcu_mem_hazard)
-		HCU_MEMWB_ENABLE = 1'b0;
-	
-	if (hcu_control_hazard)
-	begin
-		HCU_IDEX_FLUSH = 1'b1;
-		HCU_IFID_FLUSH = 1'b1;
 	end
 end
 
@@ -125,4 +122,7 @@ HAZARDS
 - Instruction fetch => If instruction fetch -> wait until the instruction fetch is done, 
 - Memory Store / Load => 
 
+*/
+/*
+! WARNING: we'll need extra signals here in case of an ongoing memory store / load during a flush.
 */

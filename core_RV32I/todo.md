@@ -80,6 +80,19 @@ because a nop instruction was inserted, but the PC is 0x8 what?
 For some reason the instruction out turned to 0x13 although it was latched to the correct 0x28113 before.
 There was no write involved.
 
+- imm: should be 0x8 (0x8+0xc = 0x14)
+- isjal should be 1
+- At the end of the exec stage
+	- Everything should be replaced by nops
+	- The PC_NEXT should be changed to PC+imm
+	- The PC_WRITE should be enabled
 
+- The issue seems to be
+	- The instruction fetch has priority
+	- So everything blocks on the instruction fetch, even a flush
+	- SOLUTION: 
+		- give the flush priority over this particular memory hazard (ifetch memory hazard)
+		- 
 
-00028113
+## JAL Issues
+
