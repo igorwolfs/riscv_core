@@ -61,18 +61,15 @@ module core_top #(
   wire [31:0] idex_reg_rdata1, idex_reg_rdata2;
   // INSTRUCTION FETCH
   wire [31:0] instruction;
-  wire        c_pc_write, hcu_imem_busy;
+  wire        c_pc_write;
   wire [31:0] jump_imm;  // PC update number
   wire [31:0] pc, pc_next;
 
   // DATA MEMORY
-  wire c_isstore, c_isload, isloadbs, isloadhws, hcu_dmem_busy;
+  wire c_isstore, c_isload, isloadbs, isloadhws;
   wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
 
-  wire hcu_mem_busy, hcu_imem_done;
-
-  assign hcu_mem_busy = hcu_dmem_busy | hcu_imem_busy;
   // ************ UNITS *****************
 
   // *** ALU UNIT ***
@@ -123,7 +120,8 @@ module core_top #(
       .C_ISSTORE_SS(c_isstore),
       .STRB(dmem_strb),
       .HCU_PC_WRITE(c_pc_write),
-      .HCU_MEM_BUSY(hcu_mem_busy),
+      .HCU_IMEM_BUSY(hcu_imem_busy),
+      .HCU_DMEM_BUSY(hcu_dmem_busy),
       .HCU_IMEM_DONE(hcu_imem_done)
   );
 

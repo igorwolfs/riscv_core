@@ -16,7 +16,8 @@ module core_hcu (
 	input C_TAKE_BRANCH,
 	input ISJAL,
 	input ISJALR,
-	input HCU_MEM_BUSY,
+	input HCU_IMEM_BUSY,
+	input HCU_DMEM_BUSY,
 	input HCU_IMEM_DONE,
 	output reg HCU_IFID_ENABLE,
 	output reg HCU_IFID_FLUSH,
@@ -62,11 +63,11 @@ assign hcu_control_hazard = (C_TAKE_BRANCH | ISJAL | ISJALR) ? 1'b1 : 1'b0;
 
 /*
 ! MEMORY READ/WRITE HAZARD
-IFETCH, LOAD, STORE delay (detected through CMEM_DONE, IFETCH_DONE)
 */
 
-wire hcu_mem_hazard;
-assign hcu_mem_hazard = (HCU_MEM_BUSY); // Should be done in each stage in order to proceed
+wire hcu_imem_hazard;
+assign hcu_dmem_hazard = (HCU_DMEM_BUSY);
+assign hcu_imem_hazard = (HCU_IMEM_BUSY); // Should be done in each stage in order to proceed
 
 
 always @(*)
@@ -79,50 +80,33 @@ begin
 	HCU_IFID_FLUSH = 1'b0;
 	HCU_IDEX_FLUSH = 1'b0;
 	HCU_EXMEM_FLUSH = 1'b0;
-
-	if (hcu_control_hazard)
+	
+	if (hcu_dmem_hazard)
 	begin
-		HCU_IDEX_FLUSH = 1'b1;
+		// Stall everything before (and including) the dmem stage
+		HCU_EXMEM_ENABLE = 1'b0;
+		HCU_IDEX_ENABLE = 1'b0;
+		HCU_IFID_ENABLE = 1'b0;
+		HCU_PC_WRITE = 1'b0;
+	end
+	else if (hcu_control_hazard)
+	begin
+		HCU_IDEX_FLUSH = 1'b1; // Should be flushed, but idex should be executed and passed to memwb -> control hazard will go low.
 		HCU_IFID_FLUSH = 1'b1;
 	end
-	else if (hcu_data_hazard | hcu_mem_hazard)
+	else if (hcu_imem_hazard)
 	begin
-		if (hcu_mem_hazard)
-			HCU_EXMEM_ENABLE = 1'b0;
-
 		HCU_PC_WRITE = 1'b0;
 		HCU_IFID_ENABLE = 1'b0;
-		if (HCU_EXMEM_ENABLE)
-		begin
-			HCU_IDEX_FLUSH = 1'b1;
-			HCU_IDEX_ENABLE = 1'b0;
-		end
-		else
-			HCU_IDEX_ENABLE = 1'b0;
+		HCU_IDEX_ENABLE = 1'b0;
 	end
+	else if (hcu_data_hazard)
+	begin
+		HCU_PC_WRITE = 1'b0;
+		HCU_IFID_ENABLE = 1'b0;
+		HCU_IDEX_FLUSH = 1'b1;
+		HCU_IDEX_ENABLE = 1'b0;
+	end
+	else;
 end
-
-// SIGNALS
-// assign HCU_IFID_ENABLE = !HCU_IMEM_DONE ? 1'b0 : 1'b1;
-// assign HCU_IDEX_ENABLE = (hcu_data_hazard | hcu_mem_hazard) ? 1'b0 : 1'b1;
-// assign HCU_EXMEM_ENABLE = hcu_mem_hazard ? 1'b0 : 1'b1;
-// assign HCU_PC_WRITE = (hcu_data_hazard | hcu_mem_hazard) ? 1'b0 : 1'b1;
-
-// assign HCU_IFID_FLUSH = (hcu_control_hazard) ? 1'b1 : 1'b0;
-// assign HCU_IDEX_FLUSH = (hcu_control_hazard) ? 1'b1 : 1'b0;
-
-// assign HCU_EXMEM_FLUSH = 1'b0;
-
 endmodule
-
-/**
-INPUTS:
-- register reads, register writes, memory fetch, instruction fetch
-HAZARDS
-- Instruction fetch => If instruction fetch -> wait until the instruction fetch is done, 
-- Memory Store / Load => 
-
-*/
-/*
-! WARNING: we'll need extra signals here in case of an ongoing memory store / load during a flush.
-*/

@@ -56,7 +56,8 @@ module core_control (
     output reg  idex_c_isalu,
 
     // *** INSTRUCTION / DATA MEMORY HCU SIGNALS
-    input HCU_MEM_BUSY,
+    input HCU_IMEM_BUSY,
+    input HCU_DMEM_BUSY,
     input HCU_IMEM_DONE
 );
 
@@ -174,7 +175,7 @@ module core_control (
       .ISLOADBS(ISLOADBS),
       .ISLOADHWS(ISLOADHWS),
       .STRB(STRB),
-      .BUSY(HCU_MEM_BUSY),
+      .BUSY(HCU_DMEM_BUSY),
       .EXMEM_C_ISSTORE(exmem_c_isstore),
       .EXMEM_C_ISLOAD(exmem_c_isload),
       .ISSTORE_SS(C_ISSTORE_SS),
@@ -184,10 +185,10 @@ module core_control (
   // Happened isjal -> isjalr
   core_cpc_update cpc_update_inst (
     .IMM(idex_imm),
-    .REG_RDATA1(REG_RDATA1),
+    .REG_RDATA1(idex_reg_rdata1),
     .C_TAKE_BRANCH(c_take_branch),
-    .ISJAL(c_isjal),
-    .ISJALR(c_isjalr),
+    .ISJAL(idex_c_isjal),
+    .ISJALR(idex_c_isjalr),
     .PC(PC),
     .IDEX_PC(idex_pc),
     .PC_NEXT(PC_NEXT)
@@ -222,7 +223,8 @@ module core_control (
     .C_TAKE_BRANCH(c_take_branch),
     .ISJAL(idex_c_isjal),
     .ISJALR(idex_c_isjalr),
-    .HCU_MEM_BUSY(HCU_MEM_BUSY),
+    .HCU_DMEM_BUSY(HCU_DMEM_BUSY),
+    .HCU_IMEM_BUSY(HCU_IMEM_BUSY),
     .HCU_IMEM_DONE(HCU_IMEM_DONE),
     .HCU_IFID_ENABLE(hcu_ifid_enable),
     .HCU_IFID_FLUSH(hcu_ifid_flush),

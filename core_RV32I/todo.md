@@ -96,3 +96,90 @@ There was no write involved.
 
 ## JAL Issues
 
+For some reason teh PC is decrementing? 
+- No idea really why that is happening.
+- The JAL instruction suddenly went back to PC 10, then 8 and then c
+
+It seems like the JAL immediate is 0x8
+- But the moment the idex register is equal to that value, everything probably gets flushed due to the hcu_control_hazard
+- At the same time as the flush there is a memory hazard
+
+So everything probably gets flushed, while
+- If the memory hazard is an instruction fetch: it should prioritize the flush
+- If the memory hazard is a data-memory one, it should prioritize the data-memory hazard over the control hazard.
+
+
+So 
+1. Data memory hazard
+2. Control hazard
+3. Instruction memory hazard
+4. Data hazard
+
+HOWEVER:
+- We'll have an issue when
+	- There is a control hazard
+	- The instruction fetch is ongoing.
+	- How do we cancel the instruction fetch here and disable all axi-bus communication on the instruction-fetch bus?
+FOR NOW just flush in case of control hazard and not data memory hazard.
+- Or maybe the idex register should just be stalled instead of being flushed?
+- Because the control hazard is actually only enabled by idex signals.
+	- So the idex signals should normally only be stalled (although they can also simply be executed)
+	- But when it's an imem-only the instruction fetch can in-fact be stopped.
+
+### PC high
+The issue now is the PC_WRITE is held for too long.
+- Normally the PC_WRITE should have been held high the moment the idex_pc and idex_imm registers got filled with the 0cx and 0x8
+So
+- That probably happened
+- But once that happened the instruction fetch for some reason 
+	- Didn't increment accordingly?
+	- Didn't break off the fetch and start again.
+
+So
+- Check the PC increment with the idex immediate
+- Check how you can break-off the ifetch when in control hazard mode.
+
+### Control hazard stays high
+So now the issue seems to be that 
+- the control hazard keeps the idex-instruction from moving on.
+- Because the idex instruction isn't moving on, the control hazard stays on.
+
+CONCLUSION: the idex needs to be enabled on a control hazard here if there is no dmem issue
+- However then the idex will simply catch the ifetch values.
+- So it should be done in 2 cycles
+1. The idex register should be flushed, but only in case there is no data memory hazard.
+
+### Question
+- Should everything be disabled until the hazard is over?
+	- I believe so
+- DMEM hazard
+	- exmem, idex and ifid should be disabled
+	- PC write should be stalled
+- CONTROL hazard
+	- IDEX should be flushed
+	- IFID should be flushed
+	- EXMEM should be updated
+	- PC should be updated
+- IMEM hazard
+	- Everything after idex can be enabled
+	- EXMEM enabled because we know the relevant data is fetched there
+	- PC write should be disabled
+	- IFID should be disabled
+	- IDEX can be enabled?
+		- It takes it's data from the ifid
+		- So it should be enabled if there's a valid ifid
+		- The ifid will then be flushed, which will lead to a NOP in the idex register on the next cycle
+- DATA hazard
+	- Should basically do the same thing
+	- except it should flush the idex register?
+		- The idex still needs to be executed
+		- The next exmem will then be a NOP
+		- It should be flushed, because 
+			- otherwise the IDEX will take over the IFID
+			- The IFID was then the instruction with the data hazard
+		- So the IFID should be on hold
+		- The IDEX should be flushed
+
+NOTE: 
+- flushing the idex means the idex will be executed and then replaced by a NOP
+- holding the idex means the idex will not be updated with a previous value
