@@ -137,3 +137,9 @@ so if (MEMWB_WRITE & !EXMEM_WRITE) -> EXMEM_FLUSH HIGH
 
 It should actually be part of the hcu_dmem_hazard.
 something like.
+
+Check why the wstrb is 0 everywhere.
+- Now it seems it simply doesn't want to write to 0x3ffffffb anymore.
+The question is why isn't the write working.
+-> It is in fact working
+
