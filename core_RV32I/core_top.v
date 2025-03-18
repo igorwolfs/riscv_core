@@ -120,7 +120,7 @@ module core_top #(
       .exmem_isloadbs(isloadbs),
       .exmem_isloadhws(isloadhws),
       .exmem_strb(dmem_strb),
-      .HCU_MEMWB_WRITE(hcu_dmem_update),
+      .hcu_memwb_write(hcu_dmem_update),
       .HCU_PC_WRITE(c_pc_write),
       .HCU_IMEM_BUSY(hcu_imem_busy),
       .HCU_DMEM_BUSY(hcu_dmem_busy),
@@ -181,7 +181,7 @@ module core_top #(
       .AXI_RREADY (HOST_AXI_RREADY),
 
       .DONE(hcu_dmem_done),
-      .MEM_UPDATE(mem_update),
+      .MEM_UPDATE(hcu_dmem_update),
 
       .BUSY(hcu_dmem_busy),
 

@@ -143,3 +143,10 @@ Check why the wstrb is 0 everywhere.
 The question is why isn't the write working.
 -> It is in fact working
 
+So now there seems to be a parallel problem
+- When one memory instruction is running after another, they don't execute
+
+Why not?
+- C_ISSTORE_SS doesn't get triggered
+- Probably because DONE is still asserted
+- So unassert DONE after the dmem_hazard

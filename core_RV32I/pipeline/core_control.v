@@ -45,7 +45,7 @@ module core_control (
     output reg exmem_isloadbs,
     output reg exmem_isloadhws,
     output reg [3:0] exmem_strb,
-    output HCU_MEMWB_WRITE,
+    output hcu_memwb_write,
 
     output HCU_PC_WRITE,
 
