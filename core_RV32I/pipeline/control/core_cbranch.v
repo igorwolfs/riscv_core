@@ -48,5 +48,4 @@ ARGUMENTS
 - inputs: 2 data values from register
 - checks branch condition
 - outputs isbranch-signal
-
 */

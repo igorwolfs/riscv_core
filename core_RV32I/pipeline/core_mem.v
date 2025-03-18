@@ -33,6 +33,8 @@ module core_mem #(
 
 	// ***  ***
 	output	 					BUSY,
+	output reg 					DONE,
+	input						MEM_UPDATE,
 	input 						C_ISLOAD_SS, 	// Indicates load instruction
 	input						ISLOADBS,		// 7th byte needs to be extended
 	input						ISLOADHWS,		// 16th byte needs to be extended
@@ -53,6 +55,7 @@ assign AXI_AWADDR = ADDR;
 assign AXI_WDATA = (STRB[0]) ? WDATA : (STRB[1]) ? WDATA << 8 : (STRB[2]) ? WDATA << 16 : WDATA << 24;
 
 reg busy_store;
+
 always @(posedge CLK)
 begin
 	if (!NRST)
@@ -64,7 +67,7 @@ begin
 	end
 	else if (C_ISSTORE_SS | busy_store)
 	begin
-		if (AXI_AWREADY & AXI_ARREADY & AXI_BVALID) // No response checking here
+		if (AXI_AWREADY & AXI_BVALID & AXI_WREADY) // No response checking here
 		begin
 			AXI_WVALID <= 1'b0;
 			AXI_AWVALID <= 1'b0;
@@ -151,6 +154,30 @@ begin
 end
 
 assign BUSY = (busy_load | busy_store);
+
+
+wire store_data_completed, load_data_completed;
+assign store_data_completed = (((C_ISSTORE_SS | busy_store) & (AXI_AWREADY & AXI_BVALID & AXI_WREADY)) | ((C_ISLOAD_SS | busy_load)));
+assign load_data_completed = ((C_ISLOAD_SS | busy_load) & (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00)));
+
+always @(posedge CLK)
+begin
+	if (!NRST)
+	begin
+		DONE <= 1'b0;
+	end
+	if (store_data_completed | load_data_completed)
+	begin
+		DONE <= 1'b1;
+	end
+	else if (MEM_UPDATE)
+	begin
+		DONE <= 1'b0;
+	end
+	else;
+end
+
+
 
 endmodule
 

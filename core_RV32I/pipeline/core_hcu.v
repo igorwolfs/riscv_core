@@ -16,9 +16,12 @@ module core_hcu (
 	input C_TAKE_BRANCH,
 	input ISJAL,
 	input ISJALR,
+	input C_ISLOAD_SS,
+	input C_ISSTORE_SS,
 	input HCU_IMEM_BUSY,
 	input HCU_DMEM_BUSY,
 	input HCU_IMEM_DONE,
+	input HCU_DMEM_DONE,
 	output reg HCU_IFID_WRITE,
 	output reg HCU_IFID_FLUSH,
 	output reg HCU_IDEX_WRITE,
@@ -66,7 +69,8 @@ assign hcu_control_hazard = (C_TAKE_BRANCH | ISJAL | ISJALR) ? 1'b1 : 1'b0;
 */
 
 wire hcu_imem_hazard;
-assign hcu_dmem_hazard = (HCU_DMEM_BUSY);
+// Add the load and store to make sure the MEMWB isn't write to before load operations.
+assign hcu_dmem_hazard = (HCU_DMEM_BUSY | C_ISLOAD_SS | C_ISSTORE_SS);
 assign hcu_imem_hazard = (HCU_IMEM_BUSY); // Should be done in each stage in order to proceed
 
 
@@ -84,6 +88,7 @@ begin
 	if (hcu_dmem_hazard)
 	begin
 		// Stall everything before (and including) the dmem stage
+		HCU_MEMWB_WRITE = 1'b0;
 		HCU_EXMEM_WRITE = 1'b0;
 		HCU_IDEX_WRITE = 1'b0;
 		HCU_IFID_WRITE = 1'b0;
@@ -105,5 +110,12 @@ begin
 		end
 	end
 	else;
+
+	// Doesn't work, since this also happens all the time with imem hazards and hcu hazards
+	// But should work, since when an HCU_EXMEM_WRITE happens without an HCU_IDEX_WRITE, the instruction should have propagated to the EXMEM already.
+	if (!HCU_IDEX_WRITE & HCU_EXMEM_WRITE) // Means the EXECUTE stage was already executed once.
+	begin
+		HCU_IDEX_FLUSH = 1'b1;	// EXMEM was already
+	end
 end
 endmodule

@@ -2,12 +2,12 @@
 
 `include "define.vh"
 
-module core_idecode #()
+module core_idecode
 (
 	input 					CLK, NRST,
 	input  [31:0] 			INSTRUCTION,
-	output reg [2:0] 		FUNCT3,
-	output reg [6:0] 		FUNCT7,
+	output [2:0] 			FUNCT3,
+	output [6:0] 			FUNCT7,
 	output reg				C_ISIMM,
 	output reg [31:0]		IMM_DEC,
 	output reg				C_ISALU,
@@ -49,8 +49,6 @@ module core_idecode #()
 	assign imm_J_extended = {{12{imm_J_instr[19]}}, imm_J_instr} << 1;
 	
 	// SIGNALS
-	wire [2:0] funct3;
-	wire [6:0] funct7;
 	wire [6:0] opcode;
 
 	assign opcode = INSTRUCTION[6:0];
@@ -75,8 +73,8 @@ module core_idecode #()
 	// ISJAL / ISJALR
 	
 	// FUNCT3/7
-	assign funct3 = INSTRUCTION[14:12];
-	assign funct7 = INSTRUCTION[31:25];
+	assign FUNCT3 = INSTRUCTION[14:12];
+	assign FUNCT7 = INSTRUCTION[31:25];
 
 	// READ / WRITE ADDRESS
 	assign REG_AWADDR = INSTRUCTION[11:7];
@@ -162,11 +160,7 @@ always @(*) begin
 	endcase
 end
 
-always @(posedge CLK)
-	begin
-		FUNCT3 <= funct3;
-		FUNCT7 <= funct7;
-	end
+
 endmodule
 
 /**

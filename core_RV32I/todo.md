@@ -98,3 +98,42 @@ Probably because
 So perhaps we need a direct exmem_c_isload / exmem_c_isstore signal to the dmem peripheral instead of a single cycle.
 This will go on until it's done.
 And then afterwards we'll somehow need to disable the memory peripheral from executing the load / store one more time.
+
+## Writability
+- Why did nothing get written?
+- The AXI_AWADDR is 0xc
+- The AXI_WDATA is 0
+- So it should have written that.
+
+Check the peripheral memory slave.
+
+## Store
+Now for some reason the store happens twice.
+For some reason the AXI_AWADDR also changes?
+- Because the data-memory hazard dissapears
+- The exmem PC stays where it is but the others do change.
+
+So first of all ensure a situation where the data memory operation happens only once.
+
+At the point where
+- When everything goes low again, the C_ISSTORE_SS goes high again.
+- So perhaps we should prevent the SS from going high while the MEMWB_WRITE is enabled?
+	- This is not a finished solution thought
+	- What if the data memory is not the last one to finish? What if the IMEM is at that time busy?
+	- Then the SS will be triggered again.
+
+So 
+- Enable a DONE signal inside the memory peripheral once the memory fetch is done.
+- Make sure this DONE signal can be un-set by the central control structure on
+	- A new exmem write? Seems like the best idea, a bit annoying though since it's a central control structure which is pushed into everything.
+
+Question:
+- Why does the idex keep its value here? 
+- So once the data memory has received it's value, I guess the idex needs to be flushed IF the data memory received it's value not synchronously.
+- SO the idex should be flushed if
+	- the EXMEM_WRITE is enabled while the IDEX_WRITE is not
+
+so if (MEMWB_WRITE & !EXMEM_WRITE) -> EXMEM_FLUSH HIGH
+
+It should actually be part of the hcu_dmem_hazard.
+something like.

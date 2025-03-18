@@ -66,7 +66,8 @@ module core_top #(
   wire [31:0] pc, pc_next;
 
   // DATA MEMORY
-  wire c_isstore, c_isload, isloadbs, isloadhws;
+
+  wire c_isstore, c_isload, isloadbs, isloadhws, hcu_dmem_update, hcu_dmem_done;
   wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
 
@@ -112,17 +113,19 @@ module core_top #(
       .idex_c_isimm(idex_c_isimm),
 
       // MEMORY OPERATIONS (LOAD / STORE)
-      .DMEM_ADDR(dmem_addr),
+      .exmem_dmem_addr(dmem_addr),
       .DMEM_RDATA(dmem_rdata),
       .C_ISLOAD_SS(c_isload),
-      .ISLOADBS(isloadbs),
-      .ISLOADHWS(isloadhws),
       .C_ISSTORE_SS(c_isstore),
-      .STRB(dmem_strb),
+      .exmem_isloadbs(isloadbs),
+      .exmem_isloadhws(isloadhws),
+      .exmem_strb(dmem_strb),
+      .HCU_MEMWB_WRITE(hcu_dmem_update),
       .HCU_PC_WRITE(c_pc_write),
       .HCU_IMEM_BUSY(hcu_imem_busy),
       .HCU_DMEM_BUSY(hcu_dmem_busy),
-      .HCU_IMEM_DONE(hcu_imem_done)
+      .HCU_IMEM_DONE(hcu_imem_done),
+      .HCU_DMEM_DONE(hcu_dmem_done)
   );
 
 
@@ -176,6 +179,9 @@ module core_top #(
       .AXI_RRESP  (HOST_AXI_RRESP),
       .AXI_RVALID (HOST_AXI_RVALID),
       .AXI_RREADY (HOST_AXI_RREADY),
+
+      .DONE(hcu_dmem_done),
+      .MEM_UPDATE(mem_update),
 
       .BUSY(hcu_dmem_busy),
 

@@ -19,29 +19,33 @@ module core_control (
     output [31:0] PC_NEXT,
 
     // *** REGISTER SIGNALS
-    output [ 4:0] REG_ARADDR1,  // Which read register 1 to use
-    output [ 4:0] REG_ARADDR2,  // Which read register 2 to use
+    output [ 4:0]     REG_ARADDR1,  // Which read register 1 to use
+    output [ 4:0]     REG_ARADDR2,  // Which read register 2 to use
     output reg [ 4:0] memwb_reg_awaddr,   // Which register to write to
-    output [31:0] REG_WDATA,
+    output [31:0]     REG_WDATA,
 
-    input  [31:0] REG_RDATA1,
-    input  [31:0] REG_RDATA2,
+    input  [31:0]     REG_RDATA1,
+    input  [31:0]     REG_RDATA2,
 
     output reg [31:0] idex_reg_rdata1,
     output reg [31:0] idex_reg_rdata2,
 
     // *** ALU SIGNALS
-    output [3:0]        OPCODE_ALU,
-    input  [31:0]       ALU_O,
-    output reg [31:0]   idex_imm,
-    output reg          idex_c_isimm,   // Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
+    output [3:0]      OPCODE_ALU,
+    input  [31:0]     ALU_O,
+    output reg [31:0] idex_imm,
+    output reg        idex_c_isimm,   // Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
 
     // *** MEMORY SIGNALS
-    output [31:0] DMEM_ADDR,  // Determines load / store address
+    output reg [31:0] exmem_dmem_addr,  // Determines load / store address
     input [31:0] DMEM_RDATA,
-    output ISLOADBS,
-    output ISLOADHWS,
-    output [3:0] STRB,
+    // output ISLOADBS,
+    // output ISLOADHWS,
+    // output [3:0] STRB,
+    output reg exmem_isloadbs,
+    output reg exmem_isloadhws,
+    output reg [3:0] exmem_strb,
+    output HCU_MEMWB_WRITE,
 
     output HCU_PC_WRITE,
 
@@ -58,7 +62,8 @@ module core_control (
     // *** INSTRUCTION / DATA MEMORY HCU SIGNALS
     input HCU_IMEM_BUSY,
     input HCU_DMEM_BUSY,
-    input HCU_IMEM_DONE
+    input HCU_IMEM_DONE,
+    input HCU_DMEM_DONE
 );
 
   // ***********************************************************************
@@ -77,7 +82,10 @@ module core_control (
   // Commands
   wire c_isbranch, c_isalu, c_isstore, c_isload;
   wire c_isjal, c_isjalr, c_isauipc, c_islui;
-
+  // Memory
+  wire [3:0] strb;
+  wire isloadbs, isloadhws;
+  wire [31:0] dmem_addr;
   // *** HCU WIRES ***
   wire hcu_idex_write, hcu_exmem_write, hcu_idex_flush, hcu_exmem_flush, hcu_memwb_write;
 
@@ -89,6 +97,10 @@ module core_control (
 
   // *** PC ***
   reg [31:0] ifid_pc, idex_pc, exmem_pc, memwb_pc;
+
+  // *** FUNCT3, FUNCT7 ***
+  reg [2:0] idex_funct3, exmem_funct3;
+  reg [6:0] idex_funct7;
 
   // *** REGISTER SIGNALS ***
   reg [31:0] exmem_reg_rdata1; // (idex_reg_rdata1)
@@ -144,8 +156,8 @@ module core_control (
   );
 
   core_calu core_calu_inst (
-      .FUNCT3(funct3),
-      .FUNCT7(funct7),
+      .FUNCT3(idex_funct3),
+      .FUNCT7(idex_funct7),
       .IMM(imm_dec),
       .ISIMM(idex_c_isimm),
       .OPCODE_ALU(OPCODE_ALU)
@@ -156,7 +168,7 @@ module core_control (
       .NRST(NRST),
       .CLK(CLK),
       .C_ISBRANCH(idex_c_isbranch),
-      .FUNCT3(funct3),
+      .FUNCT3(idex_funct3),
       .REG_RDATA1(idex_reg_rdata1),
       .REG_RDATA2(idex_reg_rdata2),
       .TAKE_BRANCH(c_take_branch)
@@ -170,12 +182,13 @@ module core_control (
       .PC(PC),
       .IMM(idex_imm),
       .REG_RDATA1(idex_reg_rdata1),
-      .FUNCT3(funct3),
-      .DMEM_ADDR(DMEM_ADDR),
-      .ISLOADBS(ISLOADBS),
-      .ISLOADHWS(ISLOADHWS),
-      .STRB(STRB),
+      .FUNCT3(idex_funct3),
+      .DMEM_ADDR(dmem_addr),
+      .ISLOADBS(isloadbs),
+      .ISLOADHWS(isloadhws),
+      .STRB(strb),
       .BUSY(HCU_DMEM_BUSY),
+      .DONE(HCU_DMEM_DONE),
       .EXMEM_C_ISSTORE(exmem_c_isstore),
       .EXMEM_C_ISLOAD(exmem_c_isload),
       .ISSTORE_SS(C_ISSTORE_SS),
@@ -223,9 +236,12 @@ module core_control (
     .C_TAKE_BRANCH(c_take_branch),
     .ISJAL(idex_c_isjal),
     .ISJALR(idex_c_isjalr),
+    .C_ISLOAD_SS(C_ISLOAD_SS),
+    .C_ISSTORE_SS(C_ISSTORE_SS),
     .HCU_DMEM_BUSY(HCU_DMEM_BUSY),
     .HCU_IMEM_BUSY(HCU_IMEM_BUSY),
     .HCU_IMEM_DONE(HCU_IMEM_DONE),
+    .HCU_DMEM_DONE(HCU_DMEM_DONE),
     .HCU_IFID_WRITE(hcu_ifid_write),
     .HCU_IFID_FLUSH(hcu_ifid_flush),
     .HCU_IDEX_WRITE(hcu_idex_write),
@@ -307,6 +323,10 @@ module core_control (
       idex_imm <= 32'hAAAA;
       idex_c_isimm <= 1'b0;
 
+      // GENERIC
+      idex_funct3 <= `FUNCT3_ADD;
+      idex_funct7 <= 7'h0;
+
       // CONTROL SIGNALS
       idex_c_isbranch <= 1'b0;
       idex_c_isalu <= 1'b0;
@@ -334,6 +354,10 @@ module core_control (
       idex_imm <= imm_dec;
       idex_c_isimm <= c_isimm;
 
+      // GENERIC
+      idex_funct3 <= funct3;
+      idex_funct7 <= funct7;
+
       // CONTROL SIGNALS
       idex_c_isbranch <= c_isbranch;
       idex_c_isalu <= c_isalu;
@@ -359,6 +383,15 @@ begin
       exmem_reg_awaddr <= 5'b0;
       exmem_c_reg_awvalid <= 1'b0;
 
+      // GENERIC
+      exmem_funct3 <= `FUNCT3_ADD;
+
+      // MEMORY
+      exmem_strb <= 4'b0;
+      exmem_isloadbs <= 1'b0;
+      exmem_isloadhws <= 1'b0;
+      exmem_dmem_addr <= 32'b0;
+
       // Control signals
       exmem_c_isload <= 1'b0;
       exmem_c_isstore <= 1'b0;
@@ -382,6 +415,15 @@ begin
       exmem_reg_rdata2 <= idex_reg_rdata2;
       exmem_reg_awaddr <= idex_reg_awaddr;
       exmem_c_reg_awvalid <= idex_c_reg_awvalid;
+
+      // GENERIC
+      exmem_funct3 <= idex_funct3;
+
+      // MEMORY
+      exmem_strb <= strb;
+      exmem_isloadbs <= isloadbs;
+      exmem_isloadhws <= isloadhws;
+      exmem_dmem_addr <= dmem_addr;
 
       // IF branching store / load
       exmem_c_isload <= idex_c_isload;
