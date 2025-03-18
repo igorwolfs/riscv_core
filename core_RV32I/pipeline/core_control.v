@@ -79,7 +79,7 @@ module core_control (
   wire c_isjal, c_isjalr, c_isauipc, c_islui;
 
   // *** HCU WIRES ***
-  wire hcu_idex_enable, hcu_exmem_enable, hcu_idex_flush, hcu_exmem_flush, hcu_memwb_enable;
+  wire hcu_idex_write, hcu_exmem_write, hcu_idex_flush, hcu_exmem_flush, hcu_memwb_write;
 
   // ***********************************************************************
   // PIPELINE REGISTERS
@@ -104,8 +104,8 @@ module core_control (
   reg exmem_c_isalu, memwb_c_isalu; // (o) idex_c_isalu
 
   // *** MEM ***
-  reg idex_c_isload, exmem_c_isload, memwb_c_isload;//
-  reg idex_c_isstore, exmem_c_isstore; // 
+  reg idex_c_isload, exmem_c_isload, memwb_c_isload; //
+  reg idex_c_isstore, exmem_c_isstore; //
 
   // *** BRANCHING / JUMPS ***
   reg idex_c_isauipc, exmem_c_isauipc, memwb_c_isauipc;
@@ -226,13 +226,13 @@ module core_control (
     .HCU_DMEM_BUSY(HCU_DMEM_BUSY),
     .HCU_IMEM_BUSY(HCU_IMEM_BUSY),
     .HCU_IMEM_DONE(HCU_IMEM_DONE),
-    .HCU_IFID_ENABLE(hcu_ifid_enable),
+    .HCU_IFID_WRITE(hcu_ifid_write),
     .HCU_IFID_FLUSH(hcu_ifid_flush),
-    .HCU_IDEX_ENABLE(hcu_idex_enable),
+    .HCU_IDEX_WRITE(hcu_idex_write),
     .HCU_IDEX_FLUSH(hcu_idex_flush),
-    .HCU_EXMEM_ENABLE(hcu_exmem_enable),
+    .HCU_EXMEM_WRITE(hcu_exmem_write),
     .HCU_EXMEM_FLUSH(hcu_exmem_flush),
-    .HCU_MEMWB_ENABLE(hcu_memwb_enable),
+    .HCU_MEMWB_WRITE(hcu_memwb_write),
     .HCU_PC_WRITE(HCU_PC_WRITE)
   );
 
@@ -284,7 +284,7 @@ module core_control (
     end
     else
     begin
-      if (hcu_ifid_enable)
+      if (hcu_ifid_write)
       begin
         ifid_pc <= PC;
         ifid_instruction <= INSTRUCTION;
@@ -322,7 +322,7 @@ module core_control (
       // PROGRAM COUNTER
       idex_pc <= 32'hAAAA;
     end
-    else if (hcu_idex_enable)
+    else if (hcu_idex_write)
     begin
       // IF R-ALU or I-ALU or STORE or LOAD
       idex_reg_rdata1 <= REG_RDATA1;
@@ -342,6 +342,7 @@ module core_control (
       idex_c_islui <= c_islui;
       idex_c_isauipc <= c_isauipc;
       idex_c_isload <= c_isload;
+      idex_c_isstore <= c_isstore;
 
       // PROGRAM COUNTER
       idex_pc <= ifid_pc;
@@ -373,7 +374,7 @@ begin
       exmem_pc <= 32'hBBBB;
       exmem_imm <= 32'hBBBB;
     end
-    else if (hcu_exmem_enable)
+    else if (hcu_exmem_write)
       begin
       //! EXMEM
       // if store / load instruction
@@ -422,7 +423,7 @@ begin
     memwb_pc <= 32'hDDDD;
     memwb_alu_o <= 32'b0;
   end
-  else if (hcu_memwb_enable) // MEMORY HAZARD
+  else if (hcu_memwb_write) // MEMORY HAZARD
   begin
     // if store / load instruction
     memwb_reg_awaddr <= exmem_reg_awaddr;

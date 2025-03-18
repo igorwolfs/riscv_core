@@ -19,13 +19,13 @@ module core_hcu (
 	input HCU_IMEM_BUSY,
 	input HCU_DMEM_BUSY,
 	input HCU_IMEM_DONE,
-	output reg HCU_IFID_ENABLE,
+	output reg HCU_IFID_WRITE,
 	output reg HCU_IFID_FLUSH,
-	output reg HCU_IDEX_ENABLE,
+	output reg HCU_IDEX_WRITE,
 	output reg HCU_IDEX_FLUSH,
-	output reg HCU_EXMEM_ENABLE,
+	output reg HCU_EXMEM_WRITE,
 	output reg HCU_EXMEM_FLUSH,
-	output reg HCU_MEMWB_ENABLE,
+	output reg HCU_MEMWB_WRITE,
 	output reg HCU_PC_WRITE // Fetch an instruction on each PC_WRITE
 );
 /*
@@ -72,21 +72,21 @@ assign hcu_imem_hazard = (HCU_IMEM_BUSY); // Should be done in each stage in ord
 
 always @(*)
 begin
-	HCU_IFID_ENABLE = 1'b1;
-	HCU_IDEX_ENABLE = 1'b1;
-	HCU_EXMEM_ENABLE = 1'b1;
-	HCU_MEMWB_ENABLE = 1'b1;
+	HCU_IFID_WRITE = 1'b1;
+	HCU_IDEX_WRITE = 1'b1;
+	HCU_EXMEM_WRITE = 1'b1;
+	HCU_MEMWB_WRITE = 1'b1;
 	HCU_PC_WRITE = 1'b1;
 	HCU_IFID_FLUSH = 1'b0;
 	HCU_IDEX_FLUSH = 1'b0;
 	HCU_EXMEM_FLUSH = 1'b0;
-	
+
 	if (hcu_dmem_hazard)
 	begin
 		// Stall everything before (and including) the dmem stage
-		HCU_EXMEM_ENABLE = 1'b0;
-		HCU_IDEX_ENABLE = 1'b0;
-		HCU_IFID_ENABLE = 1'b0;
+		HCU_EXMEM_WRITE = 1'b0;
+		HCU_IDEX_WRITE = 1'b0;
+		HCU_IFID_WRITE = 1'b0;
 		HCU_PC_WRITE = 1'b0;
 	end
 	else if (hcu_control_hazard)
@@ -94,18 +94,15 @@ begin
 		HCU_IDEX_FLUSH = 1'b1; // Should be flushed, but idex should be executed and passed to memwb -> control hazard will go low.
 		HCU_IFID_FLUSH = 1'b1;
 	end
-	else if (hcu_imem_hazard)
+	else if (hcu_imem_hazard | hcu_data_hazard)
 	begin
 		HCU_PC_WRITE = 1'b0;
-		HCU_IFID_ENABLE = 1'b0;
-		HCU_IDEX_ENABLE = 1'b0;
-	end
-	else if (hcu_data_hazard)
-	begin
-		HCU_PC_WRITE = 1'b0;
-		HCU_IFID_ENABLE = 1'b0;
-		HCU_IDEX_FLUSH = 1'b1;
-		HCU_IDEX_ENABLE = 1'b0;
+		HCU_IFID_WRITE = 1'b0;
+		HCU_IDEX_WRITE = 1'b0;
+		if (hcu_data_hazard)
+		begin
+			HCU_IDEX_FLUSH = 1'b1;
+		end
 	end
 	else;
 end
