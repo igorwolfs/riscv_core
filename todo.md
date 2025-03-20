@@ -66,4 +66,7 @@ Pipelining needs to be the basis of all this
 - Try connecting everything
 - Add the jump control to it as well
 
+NOTE: make sure the memory is always a multiple of 2.
 ### Jump control
+- For some reason there is a jump here of 0x28 to 0x0 instead of 0x28 to 0x44
+Answer: because the busy flag was set to 1 during reset

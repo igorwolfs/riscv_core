@@ -39,7 +39,7 @@ If data hazard -> UNTIL data_hazard is not set anymore
 -> How do we make sure this happens?
 */
 
-wire idex_data_hazard, exmem_data_hazard, memwb_data_hazard;
+wire idex_data_hazard, exmem_data_hazard, memwb_data_hazard, hcu_data_hazard;
 
 assign idex_data_hazard = (((REG_ARADDR1 == IDEX_REG_AWADDR) & C_REG1_MEMREAD) |
 							((REG_ARADDR2 == IDEX_REG_AWADDR) & C_REG2_MEMREAD)) & IDEX_REG_AWVALID;
@@ -68,7 +68,7 @@ assign hcu_control_hazard = (C_TAKE_BRANCH | ISJAL | ISJALR) ? 1'b1 : 1'b0;
 ! MEMORY READ/WRITE HAZARD
 */
 
-wire hcu_imem_hazard;
+wire hcu_imem_hazard, hcu_dmem_hazard;
 // Add the load and store to make sure the MEMWB isn't write to before load operations.
 assign hcu_dmem_hazard = (HCU_DMEM_BUSY | C_ISLOAD_SS | C_ISSTORE_SS);
 assign hcu_imem_hazard = (HCU_IMEM_BUSY); // Should be done in each stage in order to proceed

@@ -88,7 +88,7 @@ module core_control (
   wire isloadbs, isloadhws;
   wire [31:0] dmem_addr;
   // *** HCU WIRES ***
-  wire hcu_idex_write, hcu_exmem_write, hcu_idex_flush, hcu_exmem_flush, hcu_memwb_write;
+  wire hcu_ifid_write, hcu_idex_write, hcu_exmem_write, hcu_idex_flush, hcu_exmem_flush;
 
   // ***********************************************************************
   // PIPELINE REGISTERS

@@ -160,3 +160,26 @@ So the issue is probably that any imem operations need to be broken off on a bra
 	- At the cycle where the imem_hazard goes down, the instruction is latched and it gets latched in the ifid register as well
 Best ways to disable the ifetch?
 - Probably throught triggering the reset here together with the control hazard.
+
+## C_GEN_JAL
+For some reason the stores now happen in increasing addresses for the c_gen_jal.
+
+- It seems like nothing gets stored inside the data memory at the exmem_clockedge for some reason (PC = 4)
+- I have no idea why
+- This is a situation with 2 store-instructions after each-other
+	- 0x4
+	- 0x8
+- But it should store 0xffffffe0
+
+
+The issue seems to be that the PC_NEXT just changes for 1 clock cycle while everything is being flushed.
+
+Then once the flushing is done, for some reason an imem hazard happens?
+- Normally after flushing the PC should be latched immediately and the ifetch should also happen immediately.
+Why is the imem_hazard still being triggered?
+
+## Issue
+- It seems like the return address is erroneous for the ret.
+The address stored on x1 is 0, it should however be 0x2c.
+It got overwritten for some reason earlier by 0x6c.
+- So perhaps again something wrong with the store / load commands?

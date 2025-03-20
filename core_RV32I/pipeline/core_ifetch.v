@@ -25,6 +25,7 @@ module core_ifetch #(
 	output reg					BUSY,
 	output	 					DONE,
 	// PC UPDATES
+	input 						FLUSH,
 	input						PC_WRITE,
 	input [31:0]				PC_NEXT,
 
@@ -57,6 +58,13 @@ begin
 		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
 		BUSY <= 1; // (BUSY == 1) indicates the instruction-fetch is busy fetching -> Enable on reset since then instruction fetching restarts
+		INSTRUCTION <= 32'h00000013;
+	end
+	else if (FLUSH)
+	begin
+		AXI_ARVALID <= 0;
+		AXI_RREADY <= 0;
+		BUSY <= 0; // (BUSY == 1) indicates the instruction-fetch is busy fetching -> Enable on reset since then instruction fetching restarts
 		INSTRUCTION <= 32'h00000013;
 	end
 	else if (PC_WRITE | BUSY) // Fetch an instruction on each PC_WRITE

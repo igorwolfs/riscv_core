@@ -70,6 +70,7 @@ module core_top #(
   wire c_isstore, c_isload, isloadbs, isloadhws, hcu_dmem_update, hcu_dmem_done, hcu_ifid_flush;
   wire [31:0] dmem_addr, dmem_wdata, dmem_rdata;
   wire [3:0] dmem_strb;
+  wire hcu_imem_busy, hcu_dmem_busy, hcu_imem_done;
 
   // ************ UNITS *****************
 
@@ -131,13 +132,13 @@ module core_top #(
 
 
   // *** INSTRUCTION FETCH (AXI MASTER) ***
-  wire ifetch_nreset = !(!NRST | hcu_ifid_flush);
   core_ifetch #(
       .AXI_AWIDTH(AXI_AWIDTH),
       .AXI_DWIDTH(AXI_DWIDTH)
   ) core_ifetch_inst (
       .CLK(CLK),
-      .NRST(ifetch_nreset),
+      .NRST(NRST),
+      .FLUSH(hcu_ifid_flush),
       .AXI_ARADDR(IMEM_AXI_ARADDR),
       .AXI_ARVALID(IMEM_AXI_ARVALID),
       .AXI_ARREADY(IMEM_AXI_ARREADY),

@@ -39,7 +39,8 @@ reg [31:0] ram [0:INT_MEM_SIZE-1];
 // ==========================================
 // WRITE RESPONSE / DATA / ADDRESS CHANNEL
 // ==========================================
-
+wire [MEMMAX_ADDR_IDX:2] AWADDR_DBG;
+assign AWADDR_DBG = AXI_AWADDR[MEMMAX_ADDR_IDX:2];
 always @(posedge AXI_ACLK)
 begin
     if (!AXI_ARESETN)
@@ -124,7 +125,7 @@ end
 string mem_path;
 initial
 begin
-    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_add/my.hex";
+    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_jal/my.hex";
         $readmemh(mem_path, ram);    //"/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
                                     //  "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
     $display("Memory module initialized");
