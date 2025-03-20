@@ -150,3 +150,13 @@ Why not?
 - C_ISSTORE_SS doesn't get triggered
 - Probably because DONE is still asserted
 - So unassert DONE after the dmem_hazard
+
+# C_GEN_ADD
+The issue here seems to be that the NaN instruction somehow got latched into the ifid register after the jump was completed.
+So the issue is probably that any imem operations need to be broken off on a branch operation.
+- So on a control hazard, if imem_hazard is already high
+	- It will keep being high until the instruction is fetched
+	- The instruction is then latched into the core_ifetch-module
+	- At the cycle where the imem_hazard goes down, the instruction is latched and it gets latched in the ifid register as well
+Best ways to disable the ifetch?
+- Probably throught triggering the reset here together with the control hazard.

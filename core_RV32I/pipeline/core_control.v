@@ -48,6 +48,7 @@ module core_control (
     output hcu_memwb_write,
 
     output HCU_PC_WRITE,
+    output hcu_ifid_flush, // When ifid gets flushed reset the ifetch as well.
 
     // *** CONTROL SIGNALS
     // Instruction fetch should always happen unless stall happens.

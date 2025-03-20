@@ -44,5 +44,5 @@ Disassembly of section .text:
   3c:	01812403          	lw	s0,24(sp)
 - Add 32 to the stack pointer (x2) -> becomes 0
   40:	02010113          	addi	sp,sp,32
-- jump to return address
+- jump to return address (jalr x0, x1, 0)
   44:	00008067          	ret
