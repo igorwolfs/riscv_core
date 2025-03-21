@@ -98,6 +98,8 @@ begin
 	begin
 		HCU_IDEX_FLUSH = 1'b1; // Should be flushed, but idex should be executed and passed to memwb -> control hazard will go low.
 		HCU_IFID_FLUSH = 1'b1;
+		HCU_IFID_WRITE = 1'b0;
+		HCU_IDEX_WRITE = 1'b0;
 	end
 	else if (hcu_imem_hazard | hcu_data_hazard)
 	begin

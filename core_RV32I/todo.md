@@ -183,3 +183,19 @@ Why is the imem_hazard still being triggered?
 The address stored on x1 is 0, it should however be 0x2c.
 It got overwritten for some reason earlier by 0x6c.
 - So perhaps again something wrong with the store / load commands?
+	- 0x6c should load the memory at sp+28 into x1
+	- This does not seem to happen however
+
+# c_gen_branch
+it seems like here an error occurs on the JAL 94
+- When it is supposed to jump to 04 it just doesn't
+An idex flush happens, an imem_hazard is ongoing but at 0x78 no jump condition seems to be detected
+
+## Checking sum test
+It seems like the stores are completely off. 
+Even the first signature write, which is supposed to be 0x6f5ca309, isn't correct.
+
+However this is already inside the data-section.
+
+So the first actual write is a test. (test 0)
+It is supposed to be 0x80000000 to 0x5114

@@ -125,7 +125,7 @@ end
 string mem_path;
 initial
 begin
-    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_jal/my.hex";
+    if (!$value$plusargs("MEM_PATH=%s", mem_path)) mem_path = "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/add-01.S/dut/my.hex";
         $readmemh(mem_path, ram);    //"/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscv_core/tests/c_gen_uart/my.hex";
                                     //  "/home/iwolfs/Work/Projects/fpga_project/risc5/riscv-riscof/riscof_work/rv32i_m/I/src/add-01.S/dut/my.hex";
     $display("Memory module initialized");

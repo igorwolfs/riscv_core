@@ -79,7 +79,7 @@ module core_control (
   wire c_isimm;
   // Registers
   wire c_reg1_memread, c_reg2_memread, c_reg_awvalid;
-  wire [3:0] reg_awaddr;
+  wire [4:0] reg_awaddr;
   // Commands
   wire c_isbranch, c_isalu, c_isstore, c_isload;
   wire c_isjal, c_isjalr, c_isauipc, c_islui;

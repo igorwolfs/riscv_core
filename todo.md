@@ -70,3 +70,18 @@ NOTE: make sure the memory is always a multiple of 2.
 ### Jump control
 - For some reason there is a jump here of 0x28 to 0x0 instead of 0x28 to 0x44
 Answer: because the busy flag was set to 1 during reset
+
+## Bug
+- For some reason the idif, idex write are enabled for 3 cycles, although a control hazard is raised.
+
+- So now the write is enabled, however it seems like an instruction is skipped and a NOP is inserted for PC=78
+- Normally it should, on a PC write, simply fetch the next instruction.
+	- The previous PC write before a flush should have been the address we'd want to jump to.
+
+- It seems however that after the jump at 0x6c->0x78 was executed, the PC was actually set to the value of 0x78 but the instruction wasn't fetched.
+- It might have to do with the flush
+	- If the ifid flush is high while the PC is supposed to be incremented, there might be an invalidation of the instructions
+	- Normally the PC should be reset, and an instruction should be fetched on the next clock edge.
+	- PC write is indeed high, but the issue is that because of the reset, BUSY is set to 0.
+		- What should happen is that right on the flush, the PC should be registered and the fetch should start on the next iter.
+		- Maybe the BUSY should not even be triggered low on FLUSH, maybe it should in fact be triggered high and the program counter should

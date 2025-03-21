@@ -4,46 +4,57 @@ main.elf:     file format elf32-littleriscv
 
 Disassembly of section .text:
 
-00000000 <main>:
-   0:	fe010113          	addi	sp,sp,-32
-   4:	00112e23          	sw	ra,28(sp)
-   8:	00812c23          	sw	s0,24(sp)
-   c:	02010413          	addi	s0,sp,32
-  10:	fe042623          	sw	zero,-20(s0)
-  14:	00200793          	li	a5,2
-  18:	fef42423          	sw	a5,-24(s0)
-  1c:	fec42703          	lw	a4,-20(s0)
-  20:	fe842783          	lw	a5,-24(s0)
-  24:	00f707b3          	add	a5,a4,a5
-  28:	fef42223          	sw	a5,-28(s0)
-  2c:	fe442703          	lw	a4,-28(s0)
-  30:	00300793          	li	a5,3
-- a5 > a4 here so should branch to <44+main> OK
-  34:	00e7d863          	bge	a5,a4,44 <main+0x44>
-  38:	00100793          	li	a5,1
-  3c:	fef42623          	sw	a5,-20(s0)
-  40:	0200006f          	j	60 <main+0x60>
-- load from memory -28 into a4
+00000000 <_start>:
+   0:	400002b7          	lui	t0,0x40000
+   4:	ff028293          	addi	t0,t0,-16 # 3ffffff0 <_end+0x3fffff2c>
+   8:	00028113          	mv	sp,t0
+   c:	00c000ef          	jal	18 <main>
+  10:	084000ef          	jal	94 <finish_sim>
+  14:	0000006f          	j	14 <_start+0x14>
+
+00000018 <main>:
+  18:	fe010113          	addi	sp,sp,-32
+  1c:	00112e23          	sw	ra,28(sp)
+  20:	00812c23          	sw	s0,24(sp)
+  24:	02010413          	addi	s0,sp,32
+  28:	fe042623          	sw	zero,-20(s0)
+  2c:	00200793          	li	a5,2
+  30:	fef42423          	sw	a5,-24(s0)
+  34:	fec42703          	lw	a4,-20(s0)
+  38:	fe842783          	lw	a5,-24(s0)
+  3c:	00f707b3          	add	a5,a4,a5
+  40:	fef42223          	sw	a5,-28(s0)
   44:	fe442703          	lw	a4,-28(s0)
-- load 1 into x15
-  48:	00100793          	li	a5,1
-- branch to pc+0x58 (main+pc = 0x58) if a5 is smaller than a4
-  4c:	00e7c663          	blt	a5,a4,58 <main+0x58>
-  50:	fe042623          	sw	zero,-20(s0)
-  54:	00c0006f          	j	60 <main+0x60>
-- Load 2 into x15
-  58:	00200793          	li	a5,2
-- store x15 into 0x-20
-  5c:	fef42623          	sw	a5,-20(s0)
-- load it back (lol)
-  60:	fec42783          	lw	a5,-20(s0)
-- move a5 to a0
-  64:	00078513          	mv	a0,a5
-- load 0x28+sp into ra
-  68:	01c12083          	lw	ra,28(sp)
-- load 0x24 + sp into s0 (IGNORE)
-  6c:	01812403          	lw	s0,24(sp)
-- add 32 to sp
-  70:	02010113          	addi	sp,sp,32
-- jump back to 0
-  74:	00008067          	ret
+  48:	00300793          	li	a5,3
+  4c:	00e7d863          	bge	a5,a4,5c <main+0x44>
+  50:	00100793          	li	a5,1
+  54:	fef42623          	sw	a5,-20(s0)
+  58:	0200006f          	j	78 <main+0x60>
+  5c:	fe442703          	lw	a4,-28(s0)
+  60:	00100793          	li	a5,1
+  64:	00e7c663          	blt	a5,a4,70 <main+0x58>
+  68:	fe042623          	sw	zero,-20(s0)
+  6c:	00c0006f          	j	78 <main+0x60>
+  70:	00200793          	li	a5,2
+  74:	fef42623          	sw	a5,-20(s0)
+  78:	01c000ef          	jal	94 <finish_sim>
+  7c:	fec42783          	lw	a5,-20(s0)
+  80:	00078513          	mv	a0,a5
+  84:	01c12083          	lw	ra,28(sp)
+  88:	01812403          	lw	s0,24(sp)
+  8c:	02010113          	addi	sp,sp,32
+  90:	00008067          	ret
+
+00000094 <finish_sim>:
+  94:	ff010113          	addi	sp,sp,-16
+  98:	00112623          	sw	ra,12(sp)
+  9c:	00812423          	sw	s0,8(sp)
+  a0:	01010413          	addi	s0,sp,16
+  a4:	f00002b7          	lui	t0,0xf0000
+  a8:	00428293          	addi	t0,t0,4 # f0000004 <_end+0xefffff40>
+  ac:	0052a023          	sw	t0,0(t0)
+  b0:	00000013          	nop
+  b4:	00c12083          	lw	ra,12(sp)
+  b8:	00812403          	lw	s0,8(sp)
+  bc:	01010113          	addi	sp,sp,16
+  c0:	00008067          	ret
