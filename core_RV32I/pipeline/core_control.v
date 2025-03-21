@@ -96,6 +96,7 @@ module core_control (
   // ***********************************************************************
   // *** INSTRUCTION ***
   reg [31:0] ifid_instruction;
+  reg [31:0] memwb_dmem_rdata;
 
   // *** PC ***
   reg [31:0] ifid_pc, idex_pc, exmem_pc, memwb_pc;
@@ -213,7 +214,7 @@ module core_control (
     .MEMWB_ALU_O(memwb_alu_o),
     .MEMWB_PC(memwb_pc),
     .MEMWB_IMM(memwb_imm),
-    .DMEM_RDATA(DMEM_RDATA),
+    .DMEM_RDATA(memwb_dmem_rdata),
     .MEMWB_ISALU(memwb_c_isalu),
     .MEMWB_ISJALR(memwb_c_isjalr),
     .MEMWB_ISJAL(memwb_c_isjal),
@@ -472,6 +473,7 @@ begin
     // if store / load instruction
     memwb_reg_awaddr <= exmem_reg_awaddr;
     memwb_c_reg_awvalid <= exmem_c_reg_awvalid;
+    memwb_dmem_rdata <= DMEM_RDATA;
 
       // IF branching store / load
     memwb_c_isload <= exmem_c_isload;
@@ -485,6 +487,8 @@ begin
     memwb_imm <= exmem_imm;
     memwb_pc <= exmem_pc;
     memwb_alu_o <= exmem_alu_o;
+    
+
   end
   else;
 end

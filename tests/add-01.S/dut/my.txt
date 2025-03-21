@@ -133,7 +133,7 @@ Disassembly of section .text:
      1bc:	00a50e33          	add	t3,a0,a0
      1c0:	01c1a223          	sw	t3,4(gp)
 
-000001c4 <inst_2>:
+000001c4 <inst_2    >:
      1c4:	ff000ab7          	lui	s5,0xff000
      1c8:	fffa8a93          	addi	s5,s5,-1 # feffffff <immx+0x442f252f>
      1cc:	ff000ab7          	lui	s5,0xff000
@@ -4477,16 +4477,30 @@ Disassembly of section .text:
 
 0000333c <exit_cleanup>:
     333c:	00002517          	auipc	a0,0x2
+- Register a0 (x10) should contain 5110
     3340:	dd450513          	addi	a0,a0,-556 # 5110 <begin_signature>
     3344:	00002597          	auipc	a1,0x2
     3348:	70058593          	addi	a1,a1,1792 # 5a44 <sig_end_canary>
+- Register a1 (x11) should be 0x5a48 ok
     334c:	00458593          	addi	a1,a1,4
+- Load 0xf0000000 into x12 (a2)
     3350:	f0000637          	lui	a2,0xf0000
 
+- Look for isntruction 0x3350 (26.1 e6 ns)
 00003354 <signature_dump_loop>:
+- While (a0 < a1) (x10 < x11)
     3354:	00b55a63          	bge	a0,a1,3368 <signature_dump_end>
+- Load what is at address x10 into t0 (x5)
+- Is the first loaded word indeed 0x80000000? -> it's 0, so the word loaded is 0 for some reason
     3358:	00052283          	lw	t0,0(a0)
-    335c:	00562023          	sw	t0,0(a2) # f0000000 <immx+0x352f2530>
+- Store what is at address x5 into address of a2 (x12) a.k.a. 0xf0000000 -> write to sig
+- Check if the value read is actually 0x00000000 to know if something is wrong with the store or memory read.
+- The read data seems correct, it gets latched for a clock cycle 26.11e3 ns
+- Seems to be latched for the 1 clock-cycle in dmem, and should normally be written by exmem into register.
+- The issue here seems to be that the RDATA gets latched for 1 cycle but the REG_WDATA isn't latched
+- The RDATA should I believe be latched into the exmem register
+-    335c:	00562023          	sw	t0,0(a2) # f0000000 <immx+0x352f2530>
+- Add 4 to a0 (x10)
     3360:	00450513          	addi	a0,a0,4
     3364:	ff1ff06f          	j	3354 <signature_dump_loop>
 
