@@ -59,6 +59,7 @@ module core_top #(
   wire [4:0] reg_awaddr, reg_araddr1, reg_araddr2;
   wire [31:0] reg_rdata1, reg_rdata2, reg_wdata;
   wire [31:0] idex_reg_rdata1, idex_reg_rdata2;
+  wire [31:0] exmem_reg_rdata2;
   // INSTRUCTION FETCH
   wire [31:0] instruction;
   wire        c_pc_write;
@@ -122,6 +123,7 @@ module core_top #(
       .exmem_isloadbs(isloadbs),
       .exmem_isloadhws(isloadhws),
       .exmem_strb(dmem_strb),
+      .exmem_reg_rdata2(exmem_reg_rdata2),
       .hcu_memwb_write(hcu_dmem_update),
       .HCU_PC_WRITE(c_pc_write),
       .HCU_IMEM_BUSY(hcu_imem_busy),
@@ -195,7 +197,7 @@ module core_top #(
       .C_ISLOAD_SS(c_isload),
 
       .ADDR (dmem_addr),
-      .WDATA(reg_rdata2),
+      .WDATA(exmem_reg_rdata2), // check if exmem_reg_rdata2 is missed somehow from the control module?
       .RDATA(dmem_rdata),
       .STRB (dmem_strb)
   );

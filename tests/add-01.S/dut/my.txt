@@ -119,13 +119,12 @@ Disassembly of section .text:
      1a0:	80000237          	lui	tp,0x80000
 - Adds -1 to x4 -> works
      1a4:	fff20213          	addi	tp,tp,-1 # 7fffffff <absimm+0x3ad0dad0>
-- Loads 1 into x8,not into s8 (x24) for some reason
-- Check the waddr register here
+- Works
      1a8:	00100c13          	li	s8,1
-- 
+- Works  (becomes 0x8000000)
      1ac:	01820c33          	add	s8,tp,s8
-- Actual write is done to 0x5114 with data 0x0
-- 
+- Actual write is done to 0x5114 with data 0x0, instead of 0x80000000 stored at x4
+- Maybe something wrong with the data-hazard unit
      1b0:	0181a023          	sw	s8,0(gp)
 
 000001b4 <inst_1>:

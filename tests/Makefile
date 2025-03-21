@@ -15,15 +15,15 @@ endif
 
 # Verilator options
 VERILATOR_OPTS = -cc \
-    -Wno-PINMISSING \
-    -Wno-ASSIGNIN \
-    -Wno-UNSIGNED \
-    -Wno-WIDTHEXPAND\
     --exe \
     --trace \
     --trace-structs \
     --build \
-    --timing
+    --timing \
+    -Wno-PINMISSING \
+    -Wno-ASSIGNIN \
+    -Wno-UNSIGNED  \
+    -Wno-WIDTHEXPAND
 
  # Make sure to unset this warning when first compiling + check warnings (
  # -Wno-MODDUP \
@@ -31,6 +31,9 @@ VERILATOR_OPTS = -cc \
  # -Wno-NULLPORT \
  # -Wno-WIDTHEXPAND\ #! WARNING: This is a very risky macro to ignore, be VERY CERTAIN when using it.
  # -Wno-UNOPTFLAT
+    #    -Wno-COMBDLY \
+    # -Wno-UNSIGNED \
+    # -Wno-WIDTHEXPAND\
 
 .PHONY: run clean
 

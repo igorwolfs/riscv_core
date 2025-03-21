@@ -85,3 +85,5 @@ Answer: because the busy flag was set to 1 during reset
 	- PC write is indeed high, but the issue is that because of the reset, BUSY is set to 0.
 		- What should happen is that right on the flush, the PC should be registered and the fetch should start on the next iter.
 		- Maybe the BUSY should not even be triggered low on FLUSH, maybe it should in fact be triggered high and the program counter should
+
+- It seems like the write address is simply incorrect.

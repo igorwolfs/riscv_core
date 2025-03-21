@@ -45,6 +45,7 @@ module core_control (
     output reg exmem_isloadbs,
     output reg exmem_isloadhws,
     output reg [3:0] exmem_strb,
+    output reg [31:0] exmem_reg_rdata2,
     output hcu_memwb_write,
 
     output HCU_PC_WRITE,
@@ -105,7 +106,7 @@ module core_control (
 
   // *** REGISTER SIGNALS ***
   reg [31:0] exmem_reg_rdata1; // (idex_reg_rdata1)
-  reg [31:0] exmem_reg_rdata2; // (idex_reg_rdata2)
+  // reg [31:0] (exmem_reg_rdata2, idex_reg_rdata2)
   reg [4:0] idex_reg_awaddr, exmem_reg_awaddr;
   reg idex_c_reg_awvalid, exmem_c_reg_awvalid; // (o) idex_c_reg_awvalid
 
@@ -450,7 +451,7 @@ begin
   if (!NRST)
   begin
     // if store / load instruction
-    memwb_reg_awaddr <= 1'b0;
+    memwb_reg_awaddr <= 5'b0;
     memwb_c_reg_awvalid <= 1'b0;
 
     // IF branching store / load
