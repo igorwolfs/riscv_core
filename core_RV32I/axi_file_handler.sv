@@ -88,7 +88,7 @@ begin
                 begin
                     $display("WRITING TO FILE!\r\n");
 					$fwrite(file, "%h\n", AXI_WDATA);
-                end 
+                end
                 else if (AXI_AWADDR == ADDR_STOP_SIM)
                 begin
                     $display("Stopping simulation");

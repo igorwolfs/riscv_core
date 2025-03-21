@@ -44,7 +44,6 @@ assign host_axi_aresetn = NRST;
 
 `AXI_WIRES(host_axi_, AXI_AWIDTH, AXI_DWIDTH);
 
-
 // *** INSTRUCTION MEMORY INTERFACE ***
 wire imem_axi_aclk, imem_axi_aresetn;
 assign imem_axi_aclk = CLK;
