@@ -11,24 +11,21 @@ module core_cpc_update (
 	output [31:0] PC_NEXT
 );
 
-assign PC_NEXT = (C_TAKE_BRANCH | ISJAL) ? (IDEX_PC + IMM) :
-				(ISJALR) ? (REG_RDATA1 + IMM) :
-				(PC+4);
+
+wire [31:0] arg_i1, arg_i2;
+
+assign arg_i1 = (C_TAKE_BRANCH | ISJAL) ? IDEX_PC :
+				ISJALR ? REG_RDATA1 :
+				PC;
+
+assign arg_i2 = (C_TAKE_BRANCH | ISJAL) ? IDEX_PC :
+				ISJALR ? IMM :
+				4;
+				
+pc_adder pc_adder_inst (
+	.ARG_I1(arg_i1),
+	.ARG_I2(arg_i2),
+	.ARG_O(PC_NEXT)
+);
 
 endmodule
-
-/***
-Check
-- ISJAL
-- ISJALR
-- BRANCH_TAKEN
-- PC
-Depending on all these factors
-- Compare the program counter
-*/
-
-/**
-The C_WHATEVER commands come in at the clock edge.
-- The REG_RDATA1
-- 
-*/

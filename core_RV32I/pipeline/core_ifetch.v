@@ -5,20 +5,20 @@ module core_ifetch #(
     parameter AXI_AWIDTH = 4,
     parameter AXI_DWIDTH = 32)
 (
-    // SYSTEM
 	input  CLK, NRST,
 
     // *** INSTRUCTION MEMORY INTERFACE ***
-    // Read Address Bus
+    //< @virtualbus instruction_read_bus @dir in
+	//< address_read
 	output [AXI_AWIDTH-1:0]     AXI_ARADDR,
     output reg                  AXI_ARVALID,
     input                       AXI_ARREADY,
-    // Read Data Bus
+    //< data_read
     input  [AXI_DWIDTH-1:0]     AXI_RDATA,
     input  [1:0]                AXI_RRESP,
     input                       AXI_RVALID,
     output reg                  AXI_RREADY,
-
+    //< @end
 	// *** CONTROL SIGNAL INTERFACE ***
 	// INSTRUCTIONS
 	output reg [31:0] 			INSTRUCTION,
@@ -34,7 +34,7 @@ module core_ifetch #(
 );
 
 always @(posedge CLK)
-begin
+begin: PC_UPDATE
 	if (!NRST)
 		PC <= PC_INIT;
 	else
@@ -47,12 +47,13 @@ end
 
 assign DONE = (AXI_RVALID & AXI_ARREADY & AXI_ARVALID & (AXI_RRESP == 2'b00)) ? 1'b1 : 1'b0;
 assign AXI_ARADDR = PC;
+
 // ==========================
 // AXI READ ADDRESS CHANNEL
 // ==========================
 
 always @(posedge CLK)
-begin
+begin: AXI_HANDLER
 	if (!NRST | FLUSH)
 	begin
 		AXI_ARVALID <= 0;
@@ -75,21 +76,13 @@ begin
 			AXI_ARVALID <= 1'b1;
 			AXI_RREADY <= 1'b1;
 			BUSY <= 1'b1; // Set instruction fetch to 1 -> Keep fetching until fetch is done
-			// INSTRUCTION <= 32'h00000013;
 		end
 	end
 	else
 	begin
 		AXI_ARVALID <= 1'b0;
 		AXI_RREADY <= 1'b0;
-		// INSTRUCTION <= 32'h00000013;
 	end
 end
 
 endmodule
-
-
-/**
-We need a separate instruction fetch signal which lasts 1 clock cycle
-- It should trigger at the beginning of each 
-*/

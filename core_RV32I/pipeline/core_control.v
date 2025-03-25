@@ -12,16 +12,15 @@ TOP control module must
 */
 
 module core_control (
-    input    CLK, NRST,
-    // *** INSTRUCTION FETCH SIGNALS
-    input [31:0]  INSTRUCTION,
+    input    CLK, NRST, 
+    input [31:0]  INSTRUCTION,            //< Incoming instruction
     input [31:0]  PC,
     output [31:0] PC_NEXT,
 
     // *** REGISTER SIGNALS
-    output [ 4:0]     REG_ARADDR1,  // Which read register 1 to use
-    output [ 4:0]     REG_ARADDR2,  // Which read register 2 to use
-    output reg [ 4:0] memwb_reg_awaddr,   // Which register to write to
+    output [ 4:0]     REG_ARADDR1,        //< Read register 1 to use
+    output [ 4:0]     REG_ARADDR2,        //< Read register 2 to use
+    output reg [ 4:0] memwb_reg_awaddr,   //< Register write addres for wb-stage
     output [31:0]     REG_WDATA,
 
     input  [31:0]     REG_RDATA1,
@@ -34,10 +33,10 @@ module core_control (
     output [3:0]      OPCODE_ALU,
     input  [31:0]     ALU_O,
     output reg [31:0] idex_imm,
-    output reg        idex_c_isimm,   // Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
+    output reg        idex_c_isimm,       //< Shows whether its an immediate instruction or not => Used by alu when selecting REG2 vs immediate
 
     // *** MEMORY SIGNALS
-    output reg [31:0] exmem_dmem_addr,  // Determines load / store address
+    output reg [31:0] exmem_dmem_addr,    //< Determines load / store address
     input [31:0] DMEM_RDATA,
     // output ISLOADBS,
     // output ISLOADHWS,
@@ -49,7 +48,7 @@ module core_control (
     output hcu_memwb_write,
 
     output HCU_PC_WRITE,
-    output hcu_ifid_flush, // When ifid gets flushed reset the ifetch as well.
+    output hcu_ifid_flush,                //< Resets the ifetch unit
 
     // *** CONTROL SIGNALS
     // Instruction fetch should always happen unless stall happens.
@@ -294,7 +293,7 @@ module core_control (
   // IFID
 
   always @(posedge CLK)
-  begin
+  begin: ifid_update
     if (!NRST | hcu_ifid_flush)
     begin
       ifid_pc <= 32'hA;
@@ -312,7 +311,7 @@ module core_control (
   end
   // IDEX
   always @(posedge CLK)
-  begin
+  begin: idex_update
     if (!NRST | hcu_idex_flush)
     begin
         // IF R-ALU or I-ALU or STORE or LOAD
@@ -377,7 +376,7 @@ module core_control (
 end
 
 always @(posedge CLK)
-begin
+begin: exmem_update
     if (!NRST | hcu_exmem_flush)
     begin
       exmem_reg_rdata1 <= 32'b0;
@@ -446,8 +445,9 @@ begin
     else;
 end
 
+
 always @(posedge CLK)
-begin
+begin: memwb_update
   if (!NRST)
   begin
     // if store / load instruction
