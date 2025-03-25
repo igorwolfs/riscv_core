@@ -109,7 +109,7 @@ begin
 
 /**
 NOTE: this will enable the ISLOAD_SS for one cycle (since the BUSY asserts after one cycle of the ISLOAD_SS)
-BUT: 
+BUT:
 - When the operation is finished and EXMEM_C_ISLOAD is still high it will keep storing and loading.
 - So somehow we have to trigger it only once, and then have a DONE signal that stops it from triggering again or something
 - Perhaps a DONE register that goes high when the instruction fetch is done

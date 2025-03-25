@@ -1,7 +1,4 @@
-//! ***** RUNTIME SETTINGS *****
-`define SIMULATION
-
-//! ***** INSTRUCTIONS *****
+// ***** INSTRUCTIONS *****
 // 2-argument arithmetic instructions
 `define OPCODE_R 7'b0110011
 
@@ -26,9 +23,8 @@
 `define OPCODE_U_AUIPC 7'b0010111
 
 // EBREAK AND ECALL INSTRUCTIONS
-`define OPCODE_SYS 7'b1110011
-
-//! ***** SUB-INSTRUCTIONS *****
+// `define OPCODE_SYS 7'b1110011
+// ***** SUB-INSTRUCTIONS *****
 // **** ARITHMETIC SUB-INSTRUCTIONS ****
 // * FUNCT3
 // ADD vs SUB -> funct7
@@ -78,25 +74,15 @@
 `define FUNCT3_BGEU 3'h7
 
 
-//! ***** ALU INSTRUCTIONS ****
-`define ALU_CODE_ADD	0
-`define ALU_CODE_SUB	1
-`define ALU_CODE_XOR	2
-`define ALU_CODE_OR 	3
-`define ALU_CODE_AND	4
-`define ALU_CODE_SLL	5
-`define ALU_CODE_SRL	6
-`define ALU_CODE_SRA	7
-`define ALU_CODE_SLT	8
-`define ALU_CODE_SLTU	9
-`define ALU_CODE_INVALID	4'b1111
-
-/**
-For PC and regwrite purposes
-- WRITE TO REGISTER: Switch-case in top_cpu that
-	- Doesn't write on BRANCH_OK (controlled by single clocked signal)
-	- Writes the relevant way on all other cases
-- PC INCREMENT: switch-case in top_cpu that
-	- Doesn't increment PC on branch fail
-	- In all other cases manages the increments with an always @(*)
-*/
+// ***** ALU INSTRUCTIONS ****
+`define ALU_CODE_ADD 0
+`define ALU_CODE_SUB 1
+`define ALU_CODE_XOR 2
+`define ALU_CODE_OR  3
+`define ALU_CODE_AND 4
+`define ALU_CODE_SLL 5
+`define ALU_CODE_SRL 6
+`define ALU_CODE_SRA 7
+`define ALU_CODE_SLT 8
+`define ALU_CODE_SLTU 9
+`define ALU_CODE_INVALID 4'b1111

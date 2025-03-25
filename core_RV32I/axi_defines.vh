@@ -55,13 +55,16 @@
 //  AXI INTERCONNECT MACROS
 //=====================================
 // SLAVE ASSIGNS
+// ------------------------------
+// Write Address/Data -> S<SLAVE_NUM>
+// ------------------------------
+// ------------------------------
+// Tie off all signals to/from S<SLAVE_NUM>
+// ------------------------------
 
 `define AXI_SLAVE_GENERATE_BLOCK(SLAVE_NUM, AXI_AWIDTH, AXI_DWIDTH)              \
 generate                                                                       \
 if (S``SLAVE_NUM``_EN) begin: GEN_S``SLAVE_NUM                                  \
-    // ------------------------------                                          \
-    // Write Address/Data -> S<SLAVE_NUM>                                     \
-    // ------------------------------                                          \
     assign S``SLAVE_NUM``_AWVALID = (SM_mux_swrite == S``SLAVE_NUM``_MUX) ? m_awvalid : 1'b0; \
     assign S``SLAVE_NUM``_AWADDR  = (SM_mux_swrite == S``SLAVE_NUM``_MUX) ? m_awaddr  : {AXI_AWIDTH{1'b0}}; \
     assign S``SLAVE_NUM``_AWPROT  = (SM_mux_swrite == S``SLAVE_NUM``_MUX) ? m_awprot  : 3'b0;  \
@@ -75,9 +78,6 @@ if (S``SLAVE_NUM``_EN) begin: GEN_S``SLAVE_NUM                                  
     assign S``SLAVE_NUM``_RREADY  = (SM_mux_sread == S``SLAVE_NUM``_MUX) ? m_rready  : 1'b0;   \
                                                                                 \
 end else begin: GEN_S``SLAVE_NUM``_DISABLED                                   \
-    // ------------------------------                                          \
-    // Tie off all signals to/from S<SLAVE_NUM>                               \
-    // ------------------------------                                          \
     assign S``SLAVE_NUM``_AWVALID = 1'b0;                                     \
     assign S``SLAVE_NUM``_AWADDR  = {AXI_AWIDTH{1'b0}};                                    \
     assign S``SLAVE_NUM``_AWPROT  = 3'b0;                                     \
@@ -158,4 +158,3 @@ endgenerate
         wire [DW-1:0] PREFIX``rdata;                                     \
         wire [1:0]    PREFIX``rresp;                                     \
         wire          PREFIX``rvalid, PREFIX``rready
-    

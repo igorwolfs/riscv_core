@@ -2,7 +2,7 @@
 
 `include "axi_defines.vh"
 
-module riscv_mcu
+module mcu_top
 #(
     parameter INT_MEM_SIZE = 512,
     parameter AXI_AWIDTH = 32,

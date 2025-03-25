@@ -55,7 +55,6 @@ module core_control (
     // Instruction fetch should always happen unless stall happens.
     // And make the imem finish to avoid occupying the bus continuously in case of a memory fetch.
     // PC Should be updated every clock-cycle if not in stall-mode.
-    output reg C_PC_UPDATE,
     output reg  memwb_c_reg_awvalid,
     output  C_ISLOAD_SS,
     output  C_ISSTORE_SS,

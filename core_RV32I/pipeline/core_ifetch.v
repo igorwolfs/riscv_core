@@ -53,14 +53,7 @@ assign AXI_ARADDR = PC;
 
 always @(posedge CLK)
 begin
-	if (!NRST)
-	begin
-		AXI_ARVALID <= 0;
-		AXI_RREADY <= 0;
-		BUSY <= 1; // (BUSY == 1) indicates the instruction-fetch is busy fetching -> Enable on reset since then instruction fetching restarts
-		INSTRUCTION <= 32'h00000013;
-	end
-	else if (FLUSH)
+	if (!NRST | FLUSH)
 	begin
 		AXI_ARVALID <= 0;
 		AXI_RREADY <= 0;
